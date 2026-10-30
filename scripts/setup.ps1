@@ -25,7 +25,7 @@ function Resolve-BasePython {
             return @{ Exe = $python.Source; Prefix = @() }
         }
     }
-    throw '未找到 Python 3.10 或 3.11。请先安装 Python 3.11，再重新运行 setup.ps1。'
+    throw 'Python 3.10 or 3.11 was not found. Install Python 3.11, then rerun setup.ps1.'
 }
 
 if (-not (Test-Path -LiteralPath $venvPython)) {

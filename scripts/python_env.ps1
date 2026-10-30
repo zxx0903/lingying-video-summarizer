@@ -16,7 +16,7 @@ function Resolve-ProjectPython {
     }
 
     throw (
-        "未找到 Python 3.10+ 项目环境。请先在项目根目录运行 " +
-        ".\scripts\setup.ps1；首次运行需要联网下载依赖。"
+        "Project Python 3.10+ was not found. Run .\scripts\setup.ps1 " +
+        "from the project root. The first setup requires internet access."
     )
 }
