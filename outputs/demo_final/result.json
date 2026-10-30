@@ -1,0 +1,1150 @@
+{
+  "version": "0.1.0",
+  "input": {
+    "name": "demo_lecture.mp4",
+    "path": "D:\\work\\data\\input\\demo_lecture.mp4",
+    "duration": 127.63,
+    "width": 1280,
+    "height": 720,
+    "fps": 24.98,
+    "has_audio": true
+  },
+  "config": {
+    "target_ratio": 0.25,
+    "target_seconds": null,
+    "min_clip": 12.0,
+    "max_clip": 45.0,
+    "sample_fps": 1.0,
+    "frame_width": 480,
+    "segment_seconds": 24.0,
+    "max_segments": 120,
+    "weights": {
+      "text": 0.45,
+      "audio": 0.3,
+      "visual": 0.25
+    },
+    "asr_enabled": false,
+    "asr_model": "small",
+    "llm_enabled": false,
+    "llm_base_url": "https://api.openai.com/v1",
+    "llm_model": "gpt-4o-mini",
+    "llm_api_key_env": "OPENAI_API_KEY",
+    "seed": 42
+  },
+  "asr_mode": "srt",
+  "outline": [
+    {
+      "start": 0.0,
+      "end": 20.59,
+      "title": "什么是机器学习？"
+    },
+    {
+      "start": 20.59,
+      "end": 44.45,
+      "title": "监督学习与无监督学习"
+    },
+    {
+      "start": 44.45,
+      "end": 64.42,
+      "title": "训练集、验证集与测试集"
+    },
+    {
+      "start": 64.42,
+      "end": 85.92,
+      "title": "损失函数与梯度下降"
+    },
+    {
+      "start": 85.92,
+      "end": 106.94,
+      "title": "过拟合与正则化"
+    },
+    {
+      "start": 106.94,
+      "end": 131.18,
+      "title": "本课总结"
+    }
+  ],
+  "summary": {
+    "overview": "视频总长 02:08，系统从 6 个重点片段中提炼出 6 个章节，摘要时长 00:52，约为原视频的 41%。内容围绕 数据、学习、模型、测试、监督、训练 展开，从「什么是机器学习？」开始，最后收束于「本课总结」。",
+    "keywords": [
+      "数据",
+      "学习",
+      "模型",
+      "测试",
+      "监督",
+      "训练",
+      "标签",
+      "参数",
+      "损失",
+      "函数"
+    ],
+    "chapters": [
+      {
+        "index": 1,
+        "title": "什么是机器学习？",
+        "start": 5.31,
+        "end": 16.16,
+        "time": "00:05 - 00:16",
+        "keywords": [
+          "数据",
+          "学习",
+          "模型",
+          "机器"
+        ],
+        "summary": "机器学习不是把规则一条条写死，而是让程序从数据中自动发现规律，并用学到的模型对新样本做出预测。 请大家重点理解数据和模型之间的关系。",
+        "segment_ids": [
+          "s001"
+        ],
+        "score": 0.7096
+      },
+      {
+        "index": 2,
+        "title": "监督学习与无监督学习",
+        "start": 34.13,
+        "end": 41.21,
+        "time": "00:34 - 00:41",
+        "keywords": [
+          "数据",
+          "学习",
+          "监督",
+          "标签"
+        ],
+        "summary": "无监督学习没有标签，目标是发现数据内部的结构，例如聚类和降维。 这里要注意两类方法的区别。",
+        "segment_ids": [
+          "s003"
+        ],
+        "score": 0.8194
+      },
+      {
+        "index": 3,
+        "title": "训练集、验证集与测试集",
+        "start": 46.91,
+        "end": 55.64,
+        "time": "00:47 - 00:56",
+        "keywords": [
+          "学习",
+          "模型",
+          "测试",
+          "训练"
+        ],
+        "summary": "训练集用来学习模型参数，验证集用来选择超参数，测试集只在最后评估一次。 很多同学会忽略这一点，导致测试集信息泄漏。",
+        "segment_ids": [
+          "s004"
+        ],
+        "score": 0.6867
+      },
+      {
+        "index": 4,
+        "title": "损失函数与梯度下降",
+        "start": 64.62,
+        "end": 74.38,
+        "time": "01:05 - 01:14",
+        "keywords": [
+          "学习",
+          "模型",
+          "损失",
+          "函数"
+        ],
+        "summary": "模型学习的过程，本质上是在最小化损失函数。 损失函数衡量预测值和真实值之间的差距。",
+        "segment_ids": [
+          "s005"
+        ],
+        "score": 0.6869
+      },
+      {
+        "index": 5,
+        "title": "过拟合与正则化",
+        "start": 81.3,
+        "end": 89.88,
+        "time": "01:21 - 01:30",
+        "keywords": [
+          "学习",
+          "模型",
+          "测试",
+          "训练"
+        ],
+        "summary": "学习率太大容易震荡，太小则收敛很慢。 如果模型在训练集上表现很好，但在测试集上明显变差，就说明可能过拟合了。",
+        "segment_ids": [
+          "s006"
+        ],
+        "score": 0.6721
+      },
+      {
+        "index": 6,
+        "title": "本课总结",
+        "start": 108.88,
+        "end": 116.06,
+        "time": "01:49 - 01:56",
+        "keywords": [
+          "数据",
+          "学习",
+          "模型",
+          "损失"
+        ],
+        "summary": "机器学习可以概括为数据、模型和目标三个要素。 本节课的重点是数据划分、损失函数和过拟合。",
+        "segment_ids": [
+          "s008"
+        ],
+        "score": 0.4863
+      }
+    ],
+    "mode": "template"
+  },
+  "segments": [
+    {
+      "start": 5.31,
+      "end": 16.16,
+      "text": "机器学习不是把规则一条条写死，而是让程序从数据中自动发现规律，并用学到的模型对新样本做出预测。 请大家重点理解数据和模型之间的关系。",
+      "id": "s001",
+      "index": 1,
+      "duration": 15.03,
+      "scene_id": 0,
+      "scene_start": 0.0,
+      "scene_end": 20.59,
+      "keywords": [
+        "数据",
+        "学习",
+        "模型",
+        "机器"
+      ],
+      "text_stats": {
+        "chars": 65,
+        "richness": 0.7609,
+        "cue": 0.3333,
+        "keyword_hit": 0.5,
+        "speech_rate": 4.325,
+        "sentences": 2
+      },
+      "audio_stats": {
+        "rms": 0.07799161225557327,
+        "peak": 0.54376220703125,
+        "zcr": 0.1761621912684863,
+        "silence_ratio": 0.2157123834886817,
+        "energy_var": 0.06914874911308289,
+        "voiced_ratio": 0.7842876165113183
+      },
+      "visual_stats": {
+        "frames": 15,
+        "brightness": 0.1923030773420479,
+        "contrast": 0.5500276751590365,
+        "colorfulness": 0.30589203039805096,
+        "edge_density": 0.04859490740740741,
+        "saturation": 0.7572439406318082,
+        "motion": 0.00179140406162465,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 1.0,
+        "text_cue": 0.3333,
+        "text_keyword": 0.6666000000000001,
+        "audio_rms": 0.8379689088371336,
+        "audio_voiced": 0.9811913526738603,
+        "audio_var": 0.49675618489279644,
+        "audio_rate": 0.8934426229508204,
+        "visual_edge": 0.4016493877956145,
+        "visual_motion": 0.7780481721286369,
+        "visual_color": 0.5808365682362331
+      },
+      "modality": {
+        "text": 0.6366,
+        "audio": 0.8164,
+        "visual": 0.5782
+      },
+      "gate": {
+        "text": 0.3993,
+        "audio": 0.3276,
+        "visual": 0.273
+      },
+      "structure_bonus": 0.03,
+      "score": 0.7096,
+      "selected": true,
+      "clip": "D:\\work\\outputs\\demo_final\\clips\\clip_01_5-16.mp4"
+    },
+    {
+      "start": 20.79,
+      "end": 34.08,
+      "text": "按照训练数据有没有标签，我们可以把机器学习分为监督学习和无监督学习。 监督学习使用带标签的数据，常见任务是分类和回归；",
+      "id": "s002",
+      "index": 2,
+      "duration": 13.29,
+      "scene_id": 1,
+      "scene_start": 20.59,
+      "scene_end": 44.45,
+      "keywords": [
+        "数据",
+        "学习",
+        "监督",
+        "训练"
+      ],
+      "text_stats": {
+        "chars": 58,
+        "richness": 0.6029,
+        "cue": 0.0,
+        "keyword_hit": 0.6667,
+        "speech_rate": 4.364,
+        "sentences": 2
+      },
+      "audio_stats": {
+        "rms": 0.07870041579008102,
+        "peak": 0.6253662109375,
+        "zcr": 0.18816331155342372,
+        "silence_ratio": 0.21385542168674698,
+        "energy_var": 0.06716515868902206,
+        "voiced_ratio": 0.786144578313253
+      },
+      "visual_stats": {
+        "frames": 14,
+        "brightness": 0.19747436683006536,
+        "contrast": 0.5844465560898294,
+        "colorfulness": 0.3064466778721128,
+        "edge_density": 0.053578869047619035,
+        "saturation": 0.7507798348506071,
+        "motion": 9.062342885872296e-05,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 0.0,
+        "text_cue": 0.0,
+        "text_keyword": 1.0,
+        "audio_rms": 0.89890728058977,
+        "audio_voiced": 1.0,
+        "audio_var": 0.0,
+        "audio_rate": 1.0,
+        "visual_edge": 1.0,
+        "visual_motion": 0.03878187377786334,
+        "visual_color": 0.9412438152570141
+      },
+      "modality": {
+        "text": 0.45,
+        "audio": 0.7745,
+        "visual": 0.6489
+      },
+      "gate": {
+        "text": 0.3723,
+        "audio": 0.3424,
+        "visual": 0.2853
+      },
+      "structure_bonus": 0.0,
+      "score": 0.6178,
+      "selected": false
+    },
+    {
+      "start": 34.13,
+      "end": 41.21,
+      "text": "无监督学习没有标签，目标是发现数据内部的结构，例如聚类和降维。 这里要注意两类方法的区别。 接下来看数据划分。",
+      "id": "s003",
+      "index": 3,
+      "duration": 12.73,
+      "scene_id": 1,
+      "scene_start": 20.59,
+      "scene_end": 44.45,
+      "keywords": [
+        "数据",
+        "学习",
+        "监督",
+        "标签"
+      ],
+      "text_stats": {
+        "chars": 53,
+        "richness": 0.7219,
+        "cue": 1.0,
+        "keyword_hit": 0.5,
+        "speech_rate": 4.163,
+        "sentences": 3
+      },
+      "audio_stats": {
+        "rms": 0.07866784185171127,
+        "peak": 0.60791015625,
+        "zcr": 0.1396758738983853,
+        "silence_ratio": 0.2987421383647799,
+        "energy_var": 0.07069922983646393,
+        "voiced_ratio": 0.7012578616352201
+      },
+      "visual_stats": {
+        "frames": 12,
+        "brightness": 0.1970270004992738,
+        "contrast": 0.58158291139263,
+        "colorfulness": 0.3064873069524765,
+        "edge_density": 0.05247829861111111,
+        "saturation": 0.7511113720951345,
+        "motion": 0.002302033818577936,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 0.7531645569620251,
+        "text_cue": 1.0,
+        "text_keyword": 0.6666000000000001,
+        "audio_rms": 0.8961067827519568,
+        "audio_voiced": 0.14020616094117044,
+        "audio_var": 0.8850474770637923,
+        "audio_rate": 0.45081967213114804,
+        "visual_edge": 0.8678707738949207,
+        "visual_motion": 1.0,
+        "visual_color": 0.9676443952427524
+      },
+      "modality": {
+        "text": 0.7932,
+        "audio": 0.661,
+        "visual": 0.9391
+      },
+      "gate": {
+        "text": 0.3515,
+        "audio": 0.3537,
+        "visual": 0.2948
+      },
+      "structure_bonus": 0.03,
+      "score": 0.8194,
+      "selected": true,
+      "clip": "D:\\work\\outputs\\demo_final\\clips\\clip_02_34-41.mp4"
+    },
+    {
+      "start": 46.91,
+      "end": 55.64,
+      "text": "训练集用来学习模型参数，验证集用来选择超参数，测试集只在最后评估一次。 很多同学会忽略这一点，导致测试集信息泄漏。 记住，测试集不能参与调参。",
+      "id": "s004",
+      "index": 4,
+      "duration": 17.26,
+      "scene_id": 2,
+      "scene_start": 44.45,
+      "scene_end": 64.42,
+      "keywords": [
+        "学习",
+        "模型",
+        "测试",
+        "训练"
+      ],
+      "text_stats": {
+        "chars": 69,
+        "richness": 0.7579,
+        "cue": 0.6667,
+        "keyword_hit": 0.6667,
+        "speech_rate": 3.998,
+        "sentences": 3
+      },
+      "audio_stats": {
+        "rms": 0.07072918862104416,
+        "peak": 0.7147216796875,
+        "zcr": 0.18777538440302655,
+        "silence_ratio": 0.28621089223638474,
+        "energy_var": 0.07087302207946777,
+        "voiced_ratio": 0.7137891077636153
+      },
+      "visual_stats": {
+        "frames": 18,
+        "brightness": 0.1961368426228516,
+        "contrast": 0.576085964078091,
+        "colorfulness": 0.30645135707325405,
+        "edge_density": 0.050340470679012345,
+        "saturation": 0.7520245589748246,
+        "motion": 0.0014285491157247211,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 0.9810126582278481,
+        "text_cue": 0.6667,
+        "text_keyword": 1.0,
+        "audio_rms": 0.21359240714062894,
+        "audio_voiced": 0.26713165221431995,
+        "audio_var": 0.9285707621892627,
+        "audio_rate": 0.0,
+        "visual_edge": 0.6112133707483309,
+        "visual_motion": 0.6203285770639461,
+        "visual_color": 0.9442843375354519
+      },
+      "modality": {
+        "text": 0.889,
+        "audio": 0.322,
+        "visual": 0.6977
+      },
+      "gate": {
+        "text": 0.4137,
+        "audio": 0.3198,
+        "visual": 0.2665
+      },
+      "structure_bonus": 0.03,
+      "score": 0.6867,
+      "selected": true,
+      "clip": "D:\\work\\outputs\\demo_final\\clips\\clip_03_46-55.mp4"
+    },
+    {
+      "start": 64.62,
+      "end": 74.38,
+      "text": "模型学习的过程，本质上是在最小化损失函数。 损失函数衡量预测值和真实值之间的差距。 梯度下降沿着负梯度方向更新参数，学习率决定每一步走多远。",
+      "id": "s005",
+      "index": 5,
+      "duration": 16.63,
+      "scene_id": 3,
+      "scene_start": 64.42,
+      "scene_end": 85.92,
+      "keywords": [
+        "学习",
+        "模型",
+        "损失",
+        "函数"
+      ],
+      "text_stats": {
+        "chars": 68,
+        "richness": 0.737,
+        "cue": 1.0,
+        "keyword_hit": 0.3333,
+        "speech_rate": 4.089,
+        "sentences": 3
+      },
+      "audio_stats": {
+        "rms": 0.07987627387046814,
+        "peak": 0.787109375,
+        "zcr": 0.16989765701330498,
+        "silence_ratio": 0.23947051744885683,
+        "energy_var": 0.0705457329750061,
+        "voiced_ratio": 0.7605294825511432
+      },
+      "visual_stats": {
+        "frames": 17,
+        "brightness": 0.19631503908753045,
+        "contrast": 0.5786547106365506,
+        "colorfulness": 0.30653710049741406,
+        "edge_density": 0.05036764705882353,
+        "saturation": 0.752218341503268,
+        "motion": 7.437619144880175e-05,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 0.8487341772151897,
+        "text_cue": 1.0,
+        "text_keyword": 0.3332,
+        "audio_rms": 1.0,
+        "audio_voiced": 0.7405518509250659,
+        "audio_var": 0.84660682199413,
+        "audio_rate": 0.2486338797814215,
+        "visual_edge": 0.6144760370109131,
+        "visual_motion": 0.031719801910943334,
+        "visual_color": 1.0
+      },
+      "modality": {
+        "text": 0.6651,
+        "audio": 0.8026,
+        "visual": 0.5069
+      },
+      "gate": {
+        "text": 0.4102,
+        "audio": 0.3217,
+        "visual": 0.2681
+      },
+      "structure_bonus": 0.02,
+      "score": 0.6869,
+      "selected": true,
+      "clip": "D:\\work\\outputs\\demo_final\\clips\\clip_04_64-74.mp4"
+    },
+    {
+      "start": 81.3,
+      "end": 89.88,
+      "text": "学习率太大容易震荡，太小则收敛很慢。 如果模型在训练集上表现很好，但在测试集上明显变差，就说明可能过拟合了。",
+      "id": "s006",
+      "index": 6,
+      "duration": 12.7,
+      "scene_id": 4,
+      "scene_start": 85.92,
+      "scene_end": 106.94,
+      "keywords": [
+        "学习",
+        "模型",
+        "测试",
+        "训练"
+      ],
+      "text_stats": {
+        "chars": 53,
+        "richness": 0.7089,
+        "cue": 0.3333,
+        "keyword_hit": 0.6667,
+        "speech_rate": 4.173,
+        "sentences": 2
+      },
+      "audio_stats": {
+        "rms": 0.07753196358680725,
+        "peak": 0.69720458984375,
+        "zcr": 0.15646829412781083,
+        "silence_ratio": 0.2440944881889764,
+        "energy_var": 0.06851418316364288,
+        "voiced_ratio": 0.7559055118110236
+      },
+      "visual_stats": {
+        "frames": 13,
+        "brightness": 0.19368287560750794,
+        "contrast": 0.5560942882289499,
+        "colorfulness": 0.30589829270656294,
+        "edge_density": 0.0496073717948718,
+        "saturation": 0.7550737388972681,
+        "motion": 0.0019955973129992736,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 0.6708860759493669,
+        "text_cue": 0.3333,
+        "text_keyword": 1.0,
+        "audio_rms": 0.798451270889235,
+        "audio_voiced": 0.6937169430628336,
+        "audio_var": 0.3378400314958867,
+        "audio_rate": 0.4781420765027322,
+        "visual_edge": 0.5232010227814587,
+        "visual_motion": 0.8668034096847211,
+        "visual_color": 0.5849057860301343
+      },
+      "modality": {
+        "text": 0.711,
+        "audio": 0.6445,
+        "visual": 0.6589
+      },
+      "gate": {
+        "text": 0.3515,
+        "audio": 0.3537,
+        "visual": 0.2948
+      },
+      "structure_bonus": 0.0,
+      "score": 0.6721,
+      "selected": true,
+      "clip": "D:\\work\\outputs\\demo_final\\clips\\clip_05_81-89.mp4"
+    },
+    {
+      "start": 94.05,
+      "end": 108.83,
+      "text": "常见的解决办法是正则化，例如权重衰减、Dropout 和早停。 核心思想是限制模型复杂度，让模型学到更通用的规律。 最后总结一下。",
+      "id": "s007",
+      "index": 7,
+      "duration": 14.78,
+      "scene_id": 4,
+      "scene_start": 85.92,
+      "scene_end": 106.94,
+      "keywords": [
+        "模型",
+        "规律"
+      ],
+      "text_stats": {
+        "chars": 62,
+        "richness": 0.6956,
+        "cue": 1.0,
+        "keyword_hit": 0.1667,
+        "speech_rate": 4.195,
+        "sentences": 3
+      },
+      "audio_stats": {
+        "rms": 0.06824479252099991,
+        "peak": 0.65814208984375,
+        "zcr": 0.1710478873000454,
+        "silence_ratio": 0.3125845737483085,
+        "energy_var": 0.06920012831687927,
+        "voiced_ratio": 0.6874154262516915
+      },
+      "visual_stats": {
+        "frames": 14,
+        "brightness": 0.19168561799719885,
+        "contrast": 0.5402940359258197,
+        "colorfulness": 0.3054600975343159,
+        "edge_density": 0.048008432539682545,
+        "saturation": 0.7576642108232183,
+        "motion": 0.0017839471258588903,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 0.5867088607594936,
+        "text_cue": 1.0,
+        "text_keyword": 0.0,
+        "audio_rms": 0.0,
+        "audio_voiced": 0.0,
+        "audio_var": 0.5096232248578674,
+        "audio_rate": 0.5382513661202193,
+        "visual_edge": 0.33124001840673606,
+        "visual_motion": 0.7748069185569593,
+        "visual_color": 0.30016868170189587
+      },
+      "modality": {
+        "text": 0.4549,
+        "audio": 0.1725,
+        "visual": 0.4787
+      },
+      "gate": {
+        "text": 0.388,
+        "audio": 0.3338,
+        "visual": 0.2782
+      },
+      "structure_bonus": 0.06,
+      "score": 0.4273,
+      "selected": false
+    },
+    {
+      "start": 108.88,
+      "end": 116.06,
+      "text": "机器学习可以概括为数据、模型和目标三个要素。 本节课的重点是数据划分、损失函数和过拟合。",
+      "id": "s008",
+      "index": 8,
+      "duration": 10.63,
+      "scene_id": 5,
+      "scene_start": 106.94,
+      "scene_end": 131.18,
+      "keywords": [
+        "数据",
+        "学习",
+        "模型",
+        "损失"
+      ],
+      "text_stats": {
+        "chars": 43,
+        "richness": 0.6821,
+        "cue": 0.6667,
+        "keyword_hit": 0.5,
+        "speech_rate": 4.045,
+        "sentences": 2
+      },
+      "audio_stats": {
+        "rms": 0.07706678658723831,
+        "peak": 0.662567138671875,
+        "zcr": 0.1558483726806345,
+        "silence_ratio": 0.24858757062146897,
+        "energy_var": 0.07115824520587921,
+        "voiced_ratio": 0.751412429378531
+      },
+      "visual_stats": {
+        "frames": 11,
+        "brightness": 0.18895060903149138,
+        "contrast": 0.519022286348085,
+        "colorfulness": 0.30499815398996527,
+        "edge_density": 0.045249368686868685,
+        "saturation": 0.7610583221925133,
+        "motion": 0.00011542075163398693,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 0.5012658227848104,
+        "text_cue": 0.6667,
+        "text_keyword": 0.6666000000000001,
+        "audio_rms": 0.7584583425946625,
+        "audio_voiced": 0.6482077663032584,
+        "audio_var": 1.0,
+        "audio_rate": 0.1284153005464474,
+        "visual_edge": 0.0,
+        "visual_motion": 0.04956035082770265,
+        "visual_color": 0.0
+      },
+      "modality": {
+        "text": 0.6286,
+        "audio": 0.6832,
+        "visual": 0.0173
+      },
+      "gate": {
+        "text": 0.3054,
+        "audio": 0.3788,
+        "visual": 0.3157
+      },
+      "structure_bonus": 0.03,
+      "score": 0.4863,
+      "selected": true,
+      "clip": "D:\\work\\outputs\\demo_final\\clips\\clip_06_108-116.mp4"
+    },
+    {
+      "start": 119.56,
+      "end": 130.93,
+      "text": "课后作业是选择一个简单数据集，完成一次分类实验，并记录训练集和测试集上的准确率。 下节课再见。",
+      "id": "s009",
+      "index": 9,
+      "duration": 11.37,
+      "scene_id": 5,
+      "scene_start": 106.94,
+      "scene_end": 131.18,
+      "keywords": [
+        "数据",
+        "测试",
+        "训练",
+        "集上"
+      ],
+      "text_stats": {
+        "chars": 46,
+        "richness": 0.73,
+        "cue": 0.3333,
+        "keyword_hit": 0.5,
+        "speech_rate": 4.046,
+        "sentences": 2
+      },
+      "audio_stats": {
+        "rms": 0.07285958528518677,
+        "peak": 0.550201416015625,
+        "zcr": 0.17140377522239097,
+        "silence_ratio": 0.31026252983293556,
+        "energy_var": 0.07099571079015732,
+        "voiced_ratio": 0.6897374701670644
+      },
+      "visual_stats": {
+        "frames": 8,
+        "brightness": 0.18897623910675382,
+        "contrast": 0.5190292679300956,
+        "colorfulness": 0.3050040528178215,
+        "edge_density": 0.04541666666666667,
+        "saturation": 0.7611740536492375,
+        "motion": 1.4005602240896359e-06,
+        "scene_changes": 0
+      },
+      "norm": {
+        "text_richness": 0.8044303797468353,
+        "text_cue": 0.3333,
+        "text_keyword": 0.6666000000000001,
+        "audio_rms": 0.39675021826844425,
+        "audio_voiced": 0.023519334126611904,
+        "audio_var": 0.9592960445420502,
+        "audio_rate": 0.1311475409836068,
+        "visual_edge": 0.0200849958043476,
+        "visual_motion": 0.0,
+        "visual_color": 0.0038330298211671134
+      },
+      "modality": {
+        "text": 0.5916,
+        "audio": 0.3761,
+        "visual": 0.009
+      },
+      "gate": {
+        "text": 0.3199,
+        "audio": 0.3709,
+        "visual": 0.3091
+      },
+      "structure_bonus": 0.06,
+      "score": 0.3916,
+      "selected": false
+    }
+  ],
+  "selected_ids": [
+    "s001",
+    "s003",
+    "s004",
+    "s005",
+    "s006",
+    "s008"
+  ],
+  "selected": [
+    {
+      "id": "s001",
+      "index": 1,
+      "start": 5.31,
+      "end": 16.16,
+      "score": 0.7096,
+      "text": "机器学习不是把规则一条条写死，而是让程序从数据中自动发现规律，并用学到的模型对新样本做出预测。 请大家重点理解数据和模型之间的关系。",
+      "keywords": [
+        "数据",
+        "学习",
+        "模型",
+        "机器"
+      ],
+      "modality": {
+        "text": 0.6366,
+        "audio": 0.8164,
+        "visual": 0.5782
+      },
+      "gate": {
+        "text": 0.3993,
+        "audio": 0.3276,
+        "visual": 0.273
+      },
+      "clip": "clips/clip_01_5-16.mp4"
+    },
+    {
+      "id": "s003",
+      "index": 3,
+      "start": 34.13,
+      "end": 41.21,
+      "score": 0.8194,
+      "text": "无监督学习没有标签，目标是发现数据内部的结构，例如聚类和降维。 这里要注意两类方法的区别。 接下来看数据划分。",
+      "keywords": [
+        "数据",
+        "学习",
+        "监督",
+        "标签"
+      ],
+      "modality": {
+        "text": 0.7932,
+        "audio": 0.661,
+        "visual": 0.9391
+      },
+      "gate": {
+        "text": 0.3515,
+        "audio": 0.3537,
+        "visual": 0.2948
+      },
+      "clip": "clips/clip_02_34-41.mp4"
+    },
+    {
+      "id": "s004",
+      "index": 4,
+      "start": 46.91,
+      "end": 55.64,
+      "score": 0.6867,
+      "text": "训练集用来学习模型参数，验证集用来选择超参数，测试集只在最后评估一次。 很多同学会忽略这一点，导致测试集信息泄漏。 记住，测试集不能参与调参。",
+      "keywords": [
+        "学习",
+        "模型",
+        "测试",
+        "训练"
+      ],
+      "modality": {
+        "text": 0.889,
+        "audio": 0.322,
+        "visual": 0.6977
+      },
+      "gate": {
+        "text": 0.4137,
+        "audio": 0.3198,
+        "visual": 0.2665
+      },
+      "clip": "clips/clip_03_46-55.mp4"
+    },
+    {
+      "id": "s005",
+      "index": 5,
+      "start": 64.62,
+      "end": 74.38,
+      "score": 0.6869,
+      "text": "模型学习的过程，本质上是在最小化损失函数。 损失函数衡量预测值和真实值之间的差距。 梯度下降沿着负梯度方向更新参数，学习率决定每一步走多远。",
+      "keywords": [
+        "学习",
+        "模型",
+        "损失",
+        "函数"
+      ],
+      "modality": {
+        "text": 0.6651,
+        "audio": 0.8026,
+        "visual": 0.5069
+      },
+      "gate": {
+        "text": 0.4102,
+        "audio": 0.3217,
+        "visual": 0.2681
+      },
+      "clip": "clips/clip_04_64-74.mp4"
+    },
+    {
+      "id": "s006",
+      "index": 6,
+      "start": 81.3,
+      "end": 89.88,
+      "score": 0.6721,
+      "text": "学习率太大容易震荡，太小则收敛很慢。 如果模型在训练集上表现很好，但在测试集上明显变差，就说明可能过拟合了。",
+      "keywords": [
+        "学习",
+        "模型",
+        "测试",
+        "训练"
+      ],
+      "modality": {
+        "text": 0.711,
+        "audio": 0.6445,
+        "visual": 0.6589
+      },
+      "gate": {
+        "text": 0.3515,
+        "audio": 0.3537,
+        "visual": 0.2948
+      },
+      "clip": "clips/clip_05_81-89.mp4"
+    },
+    {
+      "id": "s008",
+      "index": 8,
+      "start": 108.88,
+      "end": 116.06,
+      "score": 0.4863,
+      "text": "机器学习可以概括为数据、模型和目标三个要素。 本节课的重点是数据划分、损失函数和过拟合。",
+      "keywords": [
+        "数据",
+        "学习",
+        "模型",
+        "损失"
+      ],
+      "modality": {
+        "text": 0.6286,
+        "audio": 0.6832,
+        "visual": 0.0173
+      },
+      "gate": {
+        "text": 0.3054,
+        "audio": 0.3788,
+        "visual": 0.3157
+      },
+      "clip": "clips/clip_06_108-116.mp4"
+    }
+  ],
+  "clips": [
+    {
+      "index": 1,
+      "path": "clips/clip_01_5-16.mp4",
+      "segment_id": "s001"
+    },
+    {
+      "index": 2,
+      "path": "clips/clip_02_34-41.mp4",
+      "segment_id": "s003"
+    },
+    {
+      "index": 3,
+      "path": "clips/clip_03_46-55.mp4",
+      "segment_id": "s004"
+    },
+    {
+      "index": 4,
+      "path": "clips/clip_04_64-74.mp4",
+      "segment_id": "s005"
+    },
+    {
+      "index": 5,
+      "path": "clips/clip_05_81-89.mp4",
+      "segment_id": "s006"
+    },
+    {
+      "index": 6,
+      "path": "clips/clip_06_108-116.mp4",
+      "segment_id": "s008"
+    }
+  ],
+  "keyframes": [
+    {
+      "segment_id": "s001",
+      "clip_index": 1,
+      "time": 11.28,
+      "path": "keyframes/kf_01_1.jpg",
+      "label": "S1 · 00:11"
+    },
+    {
+      "segment_id": "s001",
+      "clip_index": 1,
+      "time": 13.45,
+      "path": "keyframes/kf_01_2.jpg",
+      "label": "S1 · 00:13"
+    },
+    {
+      "segment_id": "s001",
+      "clip_index": 1,
+      "time": 15.29,
+      "path": "keyframes/kf_01_3.jpg",
+      "label": "S1 · 00:15"
+    },
+    {
+      "segment_id": "s003",
+      "clip_index": 2,
+      "time": 38.02,
+      "path": "keyframes/kf_02_1.jpg",
+      "label": "S2 · 00:38"
+    },
+    {
+      "segment_id": "s003",
+      "clip_index": 2,
+      "time": 39.44,
+      "path": "keyframes/kf_02_2.jpg",
+      "label": "S2 · 00:39"
+    },
+    {
+      "segment_id": "s003",
+      "clip_index": 2,
+      "time": 40.64,
+      "path": "keyframes/kf_02_3.jpg",
+      "label": "S2 · 00:41"
+    },
+    {
+      "segment_id": "s004",
+      "clip_index": 3,
+      "time": 51.71,
+      "path": "keyframes/kf_03_1.jpg",
+      "label": "S3 · 00:52"
+    },
+    {
+      "segment_id": "s004",
+      "clip_index": 3,
+      "time": 53.46,
+      "path": "keyframes/kf_03_2.jpg",
+      "label": "S3 · 00:53"
+    },
+    {
+      "segment_id": "s004",
+      "clip_index": 3,
+      "time": 54.94,
+      "path": "keyframes/kf_03_3.jpg",
+      "label": "S3 · 00:55"
+    },
+    {
+      "segment_id": "s005",
+      "clip_index": 4,
+      "time": 69.99,
+      "path": "keyframes/kf_04_1.jpg",
+      "label": "S4 · 01:10"
+    },
+    {
+      "segment_id": "s005",
+      "clip_index": 4,
+      "time": 71.94,
+      "path": "keyframes/kf_04_2.jpg",
+      "label": "S4 · 01:12"
+    },
+    {
+      "segment_id": "s005",
+      "clip_index": 4,
+      "time": 73.6,
+      "path": "keyframes/kf_04_3.jpg",
+      "label": "S4 · 01:14"
+    },
+    {
+      "segment_id": "s006",
+      "clip_index": 5,
+      "time": 86.22,
+      "path": "keyframes/kf_05_1.jpg",
+      "label": "S5 · 01:26"
+    },
+    {
+      "segment_id": "s006",
+      "clip_index": 5,
+      "time": 87.73,
+      "path": "keyframes/kf_05_2.jpg",
+      "label": "S5 · 01:28"
+    },
+    {
+      "segment_id": "s006",
+      "clip_index": 5,
+      "time": 89.19,
+      "path": "keyframes/kf_05_3.jpg",
+      "label": "S5 · 01:29"
+    },
+    {
+      "segment_id": "s008",
+      "clip_index": 6,
+      "time": 112.83,
+      "path": "keyframes/kf_06_1.jpg",
+      "label": "S6 · 01:53"
+    },
+    {
+      "segment_id": "s008",
+      "clip_index": 6,
+      "time": 114.27,
+      "path": "keyframes/kf_06_2.jpg",
+      "label": "S6 · 01:54"
+    },
+    {
+      "segment_id": "s008",
+      "clip_index": 6,
+      "time": 115.49,
+      "path": "keyframes/kf_06_3.jpg",
+      "label": "S6 · 01:55"
+    }
+  ],
+  "artifacts": {
+    "timeline": "timeline.png",
+    "contact_sheet": "keyframes.jpg",
+    "srt": "summary.srt",
+    "preview": "preview.mp4"
+  },
+  "metrics": {
+    "duration": 127.63,
+    "target_seconds": 57.43,
+    "selected_duration": 52.18,
+    "compression_ratio": 0.4088,
+    "segment_count": 9,
+    "selected_count": 6,
+    "frame_fps": 1.0,
+    "frame_count": 128,
+    "processing_seconds": 4.59,
+    "realtime_factor": 0.036
+  },
+  "warnings": []
+}

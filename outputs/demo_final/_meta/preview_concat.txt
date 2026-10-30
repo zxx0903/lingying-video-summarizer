@@ -1,0 +1,6 @@
+file 'D:\work\outputs\demo_final\clips\clip_01_5-16.mp4'
+file 'D:\work\outputs\demo_final\clips\clip_02_34-41.mp4'
+file 'D:\work\outputs\demo_final\clips\clip_03_46-55.mp4'
+file 'D:\work\outputs\demo_final\clips\clip_04_64-74.mp4'
+file 'D:\work\outputs\demo_final\clips\clip_05_81-89.mp4'
+file 'D:\work\outputs\demo_final\clips\clip_06_108-116.mp4'

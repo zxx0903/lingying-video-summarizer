@@ -1,0 +1,27 @@
+# Portable runtime and caches
+runtime/
+data/cache/
+
+# Generated outputs
+outputs/*
+!outputs/demo_final/
+
+# Large media
+data/input/*.mp4
+data/input/*.mkv
+data/input/*.mov
+data/input/*.avi
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Third-party duplicates and demo media
+third_party/_archives/
+third_party/openclip-main/demo/*.gif
+third_party/openclip-main/demo/*.mp4

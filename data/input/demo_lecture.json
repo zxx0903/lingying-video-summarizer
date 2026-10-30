@@ -1,0 +1,50 @@
+[
+  {
+    "index": 1,
+    "title": "什么是机器学习？",
+    "start": 0.0,
+    "end": 20.59,
+    "duration": 20.59,
+    "has_voice": true
+  },
+  {
+    "index": 2,
+    "title": "监督学习与无监督学习",
+    "start": 20.59,
+    "end": 44.45,
+    "duration": 23.86,
+    "has_voice": true
+  },
+  {
+    "index": 3,
+    "title": "训练集、验证集与测试集",
+    "start": 44.45,
+    "end": 64.42,
+    "duration": 19.97,
+    "has_voice": true
+  },
+  {
+    "index": 4,
+    "title": "损失函数与梯度下降",
+    "start": 64.42,
+    "end": 85.92,
+    "duration": 21.5,
+    "has_voice": true
+  },
+  {
+    "index": 5,
+    "title": "过拟合与正则化",
+    "start": 85.92,
+    "end": 106.94,
+    "duration": 21.02,
+    "has_voice": true
+  },
+  {
+    "index": 6,
+    "title": "本课总结",
+    "start": 106.94,
+    "end": 131.18,
+    "duration": 24.24,
+    "has_voice": true
+  }
+]

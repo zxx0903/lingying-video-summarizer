@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1. Generate demo lecture video",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/make_demo.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "2. Run Streamlit demo",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/run_demo.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "3. Smoke test (CLI)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/smoke_test.ps1"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

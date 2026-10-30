@@ -1,0 +1,87 @@
+# Lock file
+uv.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+.agents/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific - Output directories
+processed_videos/
+engaging_clips/
+engaging_clips_with_titles/
+engaging_clips_with_artistic_titles/
+my_custom_output/
+test_output/
+test_final/
+debug_responses/
+archive/
+examples/
+.claude/settings.json
+.claude/settings.local.json
+
+# Test results
+artistic_test_results/
+artistic_banner_test/
+all_artistic_styles_showcase/
+.pytest_cache/
+tests/__pycache__/
+smoke_output/
+tmp_font_test/
+
+# Temporary files
+*.tmp
+*.log
+demo/demo_skill.mov
+.uv-cache/
+.local-fonts/
+fonts-noto-cjk_*.deb
+
+# Runtime data
+jobs/
+persistent_data.json
+
+# Local development config
+AGENTS.md
+CLAUDE.md
+.codex
+.kiro/steering/
+.kiro/hooks/
+openclip-dev-config/
+!editor_frontend/dist/
+!editor_frontend/dist/**
