@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, asdict
 from pathlib import Path
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 @dataclass
@@ -79,23 +82,36 @@ def find_sidecar_srt(video: str | Path) -> Path | None:
 _WHISPER_CACHE: dict[str, object] = {}
 
 
+def _resolve_whisper_model(model_size: str) -> str:
+    configured = os.environ.get("LINGYING_WHISPER_MODEL", "").strip()
+    if configured:
+        return configured
+    pointer = _PROJECT_ROOT / "runtime" / "whisper_model_path.txt"
+    if pointer.exists():
+        configured = pointer.read_text(encoding="utf-8-sig").strip()
+        if configured:
+            return configured
+    return model_size
+
+
 def transcribe_with_whisper(
     audio_path: str | Path,
     model_size: str = "small",
-    language: str = "zh",
+    language: str | None = None,
 ) -> list[Cue]:
     """Transcribe with faster-whisper. Raises if the optional stack is missing."""
     from faster_whisper import WhisperModel
 
-    key = f"{model_size}:cpu"
+    model_source = _resolve_whisper_model(model_size)
+    key = f"{model_source}:cpu"
     model = _WHISPER_CACHE.get(key)
     if model is None:
-        model = WhisperModel(model_size, device="cpu", compute_type="int8")
+        model = WhisperModel(model_source, device="cpu", compute_type="int8")
         _WHISPER_CACHE[key] = model
 
     segments, _info = model.transcribe(
         str(audio_path),
-        language=language,
+        language=language or None,
         vad_filter=True,
         beam_size=5,
         condition_on_previous_text=False,

@@ -58,6 +58,10 @@ $env:PYTHONUTF8 = "1"
   --out .\outputs\cli_demo
 ```
 
+桌面版默认把 Whisper 模型放在 `runtime/whisper_model_path.txt` 指向的本地目录。
+也可以设置环境变量 `LINGYING_WHISPER_MODEL` 指向模型目录；未配置时，
+`faster-whisper` 会按模型名称自行下载。语音转写会自动检测视频语言。
+
 ### 方式 C：VS Code 调试
 
 - `F5` → 选择 **Streamlit Demo** 或 **CLI Demo**。
