@@ -1,5 +1,6 @@
 # Portable runtime and caches
 runtime/
+.venv/
 data/cache/
 
 # Generated outputs

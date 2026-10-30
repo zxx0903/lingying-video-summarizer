@@ -214,6 +214,18 @@ if not result:
 out_dir = Path(st.session_state["out_dir"])
 chosen: set[str] = st.session_state.get("chosen_ids") or set(result["selected_ids"])
 summary = st.session_state.get("adjusted_summary") or result["summary"]
+content_source = {
+    "srt": "同名字幕",
+    "whisper": "Whisper 语音转写",
+    "ocr": "屏幕文字 OCR",
+}.get(result.get("asr_mode"), "未识别到文本")
+if result.get("asr_mode") == "none":
+    st.error(
+        "没有获得字幕、语音转写或屏幕文字，当前只能按音频和画面变化生成片段，"
+        "无法可靠概括内容。请安装可选语音/OCR依赖，或为视频提供同名字幕。"
+    )
+else:
+    st.caption(f"内容来源：{content_source}")
 
 m = result["metrics"]
 cols = st.columns(5)

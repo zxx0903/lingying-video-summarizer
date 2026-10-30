@@ -27,31 +27,35 @@
 
 ### 方式 A：VS Code（推荐）
 
-1. 用 VS Code 打开文件夹 `D:\work`。
-2. 首次使用先运行任务 **`1. Generate demo lecture video`**（生成演示课程，约 20 秒）。
-3. 运行任务 **`2. Run Streamlit demo`**，浏览器打开 `http://127.0.0.1:8501`。
-4. 左侧保持「使用演示课程」，点击「开始生成摘要」。
+1. 用 VS Code 打开本项目文件夹。
+2. 首次使用先运行任务 **`0. Setup Python environment`**（需要联网安装依赖）。
+3. 运行任务 **`1. Generate demo lecture video`**（生成演示课程，约 20 秒）。
+4. 运行任务 **`2. Run Streamlit demo`**，浏览器打开 `http://127.0.0.1:8501`。
+5. 左侧保持「使用演示课程」，点击「开始生成摘要」。
 
-`.vscode/settings.json` 已把解释器指向 `D:\work\runtime\python311\python.exe`，
-`launch.json` 里也有 Streamlit 和 CLI 的调试配置。
-
-> 如果 VS Code 没有加入 PATH，直接「打开文件夹」选择 `D:\work` 即可；
-> `.vscode` 里已经写好解释器、任务和调试配置。
+`.vscode/settings.json` 默认使用项目内的 `.venv`；如果本机已有便携运行环境，
+启动脚本也会优先复用它。需要 Python 3.10 或 3.11。
 
 ### 方式 B：PowerShell
 
 ```powershell
+# 首次安装核心依赖（需要联网）
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+
+# 需要 Whisper 语音转写和 OCR 时
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -Optional
+
 # 生成演示课程（只需一次）
-powershell -ExecutionPolicy Bypass -File D:\work\scripts\make_demo.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\make_demo.ps1
 
 # 启动 Web Demo
-powershell -ExecutionPolicy Bypass -File D:\work\scripts\run_demo.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\run_demo.ps1
 
 # 或直接跑命令行
 $env:PYTHONUTF8 = "1"
-D:\work\runtime\python311\python.exe -m lingying.cli `
-  --input D:\work\data\input\demo_lecture.mp4 `
-  --out D:\work\outputs\cli_demo
+.\.venv\Scripts\python.exe -m lingying.cli `
+  --input .\data\input\demo_lecture.mp4 `
+  --out .\outputs\cli_demo
 ```
 
 ### 方式 C：VS Code 调试
@@ -84,7 +88,7 @@ D:\work\runtime\python311\python.exe -m lingying.cli `
 ## 4. 目录结构
 
 ```text
-D:\work
+项目根目录
 ├─ README.md                     ← 本文件
 ├─ .vscode\                      ← VS Code 任务与调试配置
 ├─ lingying\                     ← 我们自己的系统代码

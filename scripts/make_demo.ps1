@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$py = Join-Path $root 'runtime\python311\python.exe'
-if (-not (Test-Path $py)) { Write-Error "Python not found: $py"; exit 1 }
+. (Join-Path $PSScriptRoot 'python_env.ps1')
+$py = Resolve-ProjectPython -Root $root
 
 $env:PYTHONUTF8 = '1'
 $env:PYTHONPATH = $root

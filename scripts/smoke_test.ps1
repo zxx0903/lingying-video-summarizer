@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$py = Join-Path $root 'runtime\python311\python.exe'
+. (Join-Path $PSScriptRoot 'python_env.ps1')
+$py = Resolve-ProjectPython -Root $root
 $video = Join-Path $root 'data\input\demo_lecture.mp4'
 $out = Join-Path $root 'outputs\smoke_test'
 
