@@ -164,6 +164,15 @@ with st.sidebar:
             f" 当前状态：{vlm_detail}"
         ),
     )
+    vlm_max_frames = st.slider(
+        "VLM 场景帧数",
+        16,
+        160,
+        48,
+        8,
+        disabled=not vlm_ready or not use_vlm,
+        help="越多覆盖越完整，但推理时间线性增加。",
+    )
     template_names = {
         item.id: item.name
         for item in (*SUMMARY_TEMPLATES, *load_custom_templates())
@@ -214,6 +223,7 @@ if run_clicked and video_path is not None:
         asr_enabled=use_asr,
         ocr_enabled=use_ocr,
         vlm_enabled=use_vlm,
+        vlm_max_frames=vlm_max_frames,
         template_id=template_id,
         custom_keywords=[
             item.strip()

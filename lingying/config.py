@@ -41,8 +41,9 @@ class PipelineConfig:
     vlm_model: str = "Qwen/Qwen2.5-VL-3B-Instruct"
     vlm_device: str = "auto"
     vlm_quantization: str = "4bit"
-    vlm_max_frames: int = 80
-    vlm_max_new_tokens: int = 128
+    vlm_max_frames: int = 48
+    vlm_max_new_tokens: int = 256
+    vlm_summary_max_tokens: int = 768
     vlm_base_url: str = "http://127.0.0.1:11434/v1"
     vlm_api_key_env: str = "VLM_API_KEY"
     vlm_timeout_seconds: int = 180

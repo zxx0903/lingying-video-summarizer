@@ -28,6 +28,18 @@ class VlmEvidenceTest(unittest.TestCase):
         self.assertEqual(data["objects"], ["讲师"])
         self.assertAlmostEqual(data["confidence"], 0.9)
 
+    def test_parse_truncated_json(self):
+        data = parse_visual_response(
+            '```json\n{"description":"实验者连接电路",'
+            '"objects":["实验者","电路"],"actions":["连接导线"],'
+            '"on_screen_text":"存储器实验","confidence":0.82',
+            "test",
+        )
+        self.assertEqual(data["description"], "实验者连接电路")
+        self.assertEqual(data["objects"], ["实验者", "电路"])
+        self.assertEqual(data["on_screen_text"], "存储器实验")
+        self.assertAlmostEqual(data["confidence"], 0.82)
+
     def test_select_scene_and_uniform_frames(self):
         frames = [Path(f"frame_{i}.jpg") for i in range(10)]
         samples = select_visual_samples(

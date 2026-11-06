@@ -419,7 +419,13 @@ def build_summary(
         max_chapters=config.max_chapters,
     )
     overview = build_overview(duration, selected, top_keywords, chapters)
-    overview, mode = maybe_llm_polish(overview, chapters, config)
+    from .vlm import polish_summary_with_vlm
+
+    overview, chapters, mode = polish_summary_with_vlm(
+        overview, chapters, config
+    )
+    if mode not in {"vlm"}:
+        overview, mode = maybe_llm_polish(overview, chapters, config)
     return {
         "overview": overview,
         "keywords": top_keywords[:10],

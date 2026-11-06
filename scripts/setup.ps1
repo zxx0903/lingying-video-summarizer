@@ -1,6 +1,7 @@
 param(
     [switch]$Optional,
-    [switch]$Vlm
+    [switch]$Vlm,
+    [string]$CudaIndexUrl = 'https://download.pytorch.org/whl/cu128'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,6 +52,11 @@ $requirements = if ($Vlm) {
 }
 Write-Host "Installing $requirements ..."
 $ErrorActionPreference = 'Continue'
+if ($Vlm) {
+    & $venvPython -m pip install --no-warn-script-location --progress-bar off `
+        --index-url $CudaIndexUrl torch torchvision
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
 & $venvPython -m pip install --no-warn-script-location --progress-bar off `
     -r (Join-Path $root $requirements)
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

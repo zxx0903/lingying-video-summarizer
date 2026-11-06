@@ -63,6 +63,12 @@ def main() -> None:
         default="Qwen/Qwen2.5-VL-3B-Instruct",
         help="VLM 模型名或本地目录",
     )
+    parser.add_argument(
+        "--vlm-max-frames",
+        type=int,
+        default=48,
+        help="VLM 最多抽样的场景帧数",
+    )
     args = parser.parse_args()
 
     config = PipelineConfig(
@@ -74,6 +80,7 @@ def main() -> None:
         vlm_enabled=args.vlm,
         vlm_backend=args.vlm_backend,
         vlm_model=args.vlm_model,
+        vlm_max_frames=max(1, args.vlm_max_frames),
         template_id=args.template,
         custom_keywords=[
             item.strip() for item in args.keywords.split(",") if item.strip()

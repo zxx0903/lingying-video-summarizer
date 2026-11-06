@@ -5,6 +5,7 @@ import importlib.util
 import json
 import os
 import re
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,19 @@ from .config import PipelineConfig
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _QWEN_CACHE: dict[tuple[str, str, str], tuple[Any, Any]] = {}
+
+
+def _load_external_site_packages() -> None:
+    configured = os.environ.get("LINGYING_VLM_SITE_PACKAGES", "").strip()
+    if not configured:
+        pointer = _PROJECT_ROOT / "runtime" / "vlm_site_packages_path.txt"
+        if pointer.exists():
+            configured = pointer.read_text(encoding="utf-8-sig").strip()
+    if configured and Path(configured).is_dir() and configured not in sys.path:
+        sys.path.insert(0, configured)
+
+
+_load_external_site_packages()
 
 SYSTEM_PROMPT = """你是教育视频的画面理解器。只描述画面中直接可见的信息。
 不要猜测身份、地点、意图或未显示的内容。
@@ -69,7 +83,30 @@ def parse_visual_response(raw: str, backend: str = "") -> dict:
     try:
         data = json.loads(cleaned)
     except (TypeError, json.JSONDecodeError):
-        data = {"description": (raw or "").strip()}
+        data = {}
+        for key in ("description", "on_screen_text", "content_type"):
+            pattern = rf'"{re.escape(key)}"\s*:\s*"((?:\\.|[^"\\])*)"'
+            match = re.search(pattern, cleaned, flags=re.DOTALL)
+            if match:
+                try:
+                    data[key] = json.loads('"' + match.group(1) + '"')
+                except json.JSONDecodeError:
+                    data[key] = match.group(1)
+        for key in ("objects", "actions"):
+            match = re.search(
+                rf'"{re.escape(key)}"\s*:\s*\[(.*?)(?:\]|$)',
+                cleaned,
+                flags=re.DOTALL,
+            )
+            if match:
+                data[key] = re.findall(r'"((?:\\.|[^"\\])*)"', match.group(1))
+        match = re.search(
+            r'"confidence"\s*:\s*([0-9]*\.?[0-9]+)', cleaned
+        )
+        if match:
+            data["confidence"] = match.group(1)
+        if not data.get("description"):
+            data["description"] = (raw or "").strip()
     if not isinstance(data, dict):
         data = {"description": str(data)}
 
@@ -359,8 +396,23 @@ def describe_video_frames(
 
 
 def combine_semantic_text(seg: dict) -> str:
-    parts = [str(seg.get("text", "") or "").strip()]
-    visual = str(seg.get("visual_text", "") or "").strip()
+    base = str(seg.get("text", "") or "").strip()
+    parts = [base]
+    if base:
+        # Spoken text already carries the narrative. Only add visually grounded
+        # details that are not duplicative filler such as "a person is sitting".
+        visual_parts = []
+        screen_text = str(seg.get("visual_screen_text", "") or "").strip()
+        if screen_text:
+            visual_parts.append(screen_text)
+        content_types = set(seg.get("visual_content_types", []))
+        if content_types & {"slide", "code", "whiteboard"}:
+            visual_parts.extend(
+                seg.get("visual_descriptions", [])[:2]
+            )
+        visual = "\n".join(item for item in visual_parts if item).strip()
+    else:
+        visual = str(seg.get("visual_text", "") or "").strip()
     if visual:
         parts.append("画面：" + visual)
     return "\n".join(part for part in parts if part)
@@ -394,6 +446,8 @@ def attach_visual_evidence(
         items = seg.get("visual_evidence", [])
         descriptions: list[str] = []
         visible_text: list[str] = []
+        actions: list[str] = []
+        content_types: list[str] = []
         for item in items:
             desc = str(item.get("description", "")).strip()
             if desc and desc not in descriptions:
@@ -401,8 +455,100 @@ def attach_visual_evidence(
             text = str(item.get("on_screen_text", "")).strip()
             if text and text not in visible_text:
                 visible_text.append(text)
+            for action in item.get("actions") or []:
+                action = str(action).strip()
+                if action and action not in actions:
+                    actions.append(action)
+            content_type = str(item.get("content_type", "")).strip()
+            if content_type and content_type not in content_types:
+                content_types.append(content_type)
         seg["visual_description"] = "\n".join(descriptions)
+        seg["visual_descriptions"] = descriptions
+        seg["visual_screen_text"] = "\n".join(visible_text)
+        seg["visual_actions"] = actions
+        seg["visual_content_types"] = content_types
         seg["visual_text"] = "\n".join(
             part for part in ("\n".join(descriptions), "\n".join(visible_text)) if part
         )
         seg["semantic_text"] = combine_semantic_text(seg)
+
+
+def polish_summary_with_vlm(
+    overview: str,
+    chapters: list[dict],
+    config: PipelineConfig,
+) -> tuple[str, list[dict], str]:
+    """Rewrite extractive chapter titles with the local multimodal model."""
+    if not config.vlm_enabled or not chapters:
+        return overview, chapters, "template"
+    available, _message = vlm_availability(config)
+    if not available:
+        return overview, chapters, "template (vlm unavailable)"
+
+    payload = [
+        {
+            "index": chapter.get("index"),
+            "time": chapter.get("time"),
+            "title": str(chapter.get("title", ""))[:80],
+            "summary": str(chapter.get("summary", ""))[:800],
+        }
+        for chapter in chapters
+    ]
+    prompt = (
+        "你是教育视频摘要编辑。根据给定的时间顺序和原始证据，重写课程章节。"
+        "只能使用输入中出现的事实，不得补充未出现的知识、人物或结论。"
+        "标题要具体、简洁，使用中文；摘要每章一到两句。"
+        "删除口语填充词和重复内容。只输出 JSON，格式为："
+    '{"overview":"总摘要","chapters":[{"index":1,"title":"标题","summary":"摘要"}]}\n'
+        + json.dumps(payload, ensure_ascii=False)
+    )
+    messages = [
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": prompt}],
+        }
+    ]
+    try:
+        model, processor = _load_qwen(config)
+        import torch
+
+        formatted = processor.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = processor(
+            text=[formatted],
+            padding=True,
+            return_tensors="pt",
+        )
+        device = getattr(model, "device", None)
+        if device is not None:
+            inputs = inputs.to(device)
+        with torch.inference_mode():
+            generated = model.generate(
+                **inputs,
+                max_new_tokens=max(384, int(config.vlm_summary_max_tokens)),
+                do_sample=False,
+            )
+        output = generated[:, inputs.input_ids.shape[1] :]
+        raw = processor.batch_decode(output, skip_special_tokens=True)[0].strip()
+        cleaned = _clean_json_text(raw)
+        data = json.loads(cleaned)
+        rewritten = {
+            int(item["index"]): item
+            for item in data.get("chapters", [])
+            if isinstance(item, dict) and str(item.get("index", "")).isdigit()
+        }
+        for chapter in chapters:
+            item = rewritten.get(int(chapter.get("index", -1)))
+            if not item:
+                continue
+            title = str(item.get("title") or "").strip()
+            summary = str(item.get("summary") or "").strip()
+            if title:
+                chapter["title"] = title[:40]
+            if summary:
+                chapter["summary"] = summary[:500]
+        new_overview = str(data.get("overview") or "").strip()
+        return new_overview or overview, chapters, "vlm"
+    except Exception:
+        return overview, chapters, "template (vlm failed)"
