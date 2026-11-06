@@ -9,7 +9,14 @@ from typing import Iterable
 import requests
 
 from .config import PipelineConfig
-from .text_features import best_title, keyword_scores, split_sentences
+from .text_features import (
+    best_title,
+    cue_word_score,
+    jaccard,
+    keyword_scores,
+    split_sentences,
+    tokenize,
+)
 
 
 def _fmt_time(seconds: float) -> str:
@@ -139,51 +146,169 @@ def _chapter_title(text: str, keywords: list[str], index: int) -> str:
     for needle, title in headings:
         if needle in text:
             return title
-    return best_title(text, keywords[:2]) if text else f"第 {index} 部分"
+    if not text:
+        return f"第 {index} 部分"
+
+    candidates = split_sentences(text)
+    if not candidates:
+        candidates = [text]
+    ranked: list[tuple[float, int, str]] = []
+    for i, sentence in enumerate(candidates):
+        compact = "".join(sentence.split())
+        if len(compact) < 5:
+            continue
+        score = min(1.0, len(compact) / 70.0)
+        score += 1.2 * sum(1 for word in keywords[:4] if word in sentence)
+        score += 0.8 * cue_word_score(sentence)
+        if sentence.startswith(
+            ("相反", "甚至", "但是", "所以", "然而", "那么", "如果", "以及", "\"")
+        ):
+            score -= 0.8
+        if len(compact) > 90:
+            score -= 0.35
+        ranked.append((score, i, sentence))
+    if ranked:
+        ranked.sort(reverse=True)
+        candidates = [ranked[0][2]]
+    title = best_title(candidates[0], keywords[:2])
+    weak_starts = (
+        "我们会了解",
+        "我们会",
+        "但",
+        "然而",
+        "所以",
+        "甚至",
+        "相反",
+        "而且",
+        "以及",
+    )
+    if (
+        title.startswith(weak_starts)
+        or len(title.strip("… ")) < 6
+        or len(title.strip("… ")) > 22
+    ):
+        keyword_title = "、".join(word for word in keywords[:3] if word)
+        if keyword_title:
+            title = keyword_title
+    return title
+
+
+def _group_tokens(group: list[dict]) -> set[str]:
+    result: set[str] = set()
+    for seg in group:
+        result.update(seg.get("tokens", []))
+        result.update(seg.get("keywords", []))
+    return result
+
+
+def _group_span(group: list[dict]) -> float:
+    return group[-1]["end"] - group[0]["start"]
+
+
+def _group_duration(group: list[dict]) -> float:
+    return sum(max(0.0, seg["end"] - seg["start"]) for seg in group)
+
+
+def _merge_groups(left: list[dict], right: list[dict]) -> list[dict]:
+    return sorted(left + right, key=lambda seg: seg["start"])
+
+
+def _group_selected(selected: list[dict], max_chapters: int) -> list[list[dict]]:
+    """Build topic-oriented groups without treating every shot as a chapter."""
+    if not selected:
+        return []
+    selected = sorted(selected, key=lambda seg: seg["start"])
+    groups: list[list[dict]] = []
+    current = [selected[0]]
+    for seg in selected[1:]:
+        gap = seg["start"] - current[-1]["end"]
+        similarity = jaccard(_group_tokens(current), set(seg.get("tokens", [])))
+        too_long = _group_duration(current) >= 120.0
+        theme_break = len(current) >= 4 and similarity < 0.035
+        if gap > 50.0 or too_long or theme_break:
+            groups.append(current)
+            current = [seg]
+        else:
+            current.append(seg)
+    groups.append(current)
+
+    # A dense edited video may still leave one oversized group. Split it at its
+    # largest temporal and thematic break.
+    split_limit = 6
+    while any(len(group) > split_limit for group in groups):
+        rebuilt: list[list[dict]] = []
+        for group in groups:
+            if len(group) <= split_limit:
+                rebuilt.append(group)
+                continue
+            candidates = []
+            for i in range(1, len(group)):
+                gap = group[i]["start"] - group[i - 1]["end"]
+                similarity = jaccard(
+                    set(group[i - 1].get("tokens", [])),
+                    set(group[i].get("tokens", [])),
+                )
+                imbalance = abs(i - len(group) / 2)
+                candidates.append((gap - 20 * similarity - 3 * imbalance, i))
+            split_at = max(candidates)[1]
+            rebuilt.extend([group[:split_at], group[split_at:]])
+        groups = rebuilt
+
+    max_chapters = max(1, int(max_chapters))
+    while len(groups) > max_chapters:
+        merge_options = []
+        for i in range(len(groups) - 1):
+            left, right = groups[i], groups[i + 1]
+            gap = max(0.0, right[0]["start"] - left[-1]["end"])
+            similarity = jaccard(_group_tokens(left), _group_tokens(right))
+            cost = gap / 60.0 + (1.0 - similarity)
+            merge_options.append((cost, i))
+        _, merge_at = min(merge_options)
+        groups[merge_at : merge_at + 2] = [
+            _merge_groups(groups[merge_at], groups[merge_at + 1])
+        ]
+    return groups
+
+
+def _outline_groups(selected: list[dict], outline: list[dict]) -> list[list[dict]]:
+    buckets: dict[int, list[dict]] = {}
+    for seg in selected:
+        idx = seg.get("scene_id")
+        if idx is None:
+            idx = _outline_index((seg["start"] + seg["end"]) / 2.0, outline)
+        idx = -1 if idx is None else int(idx)
+        buckets.setdefault(idx, []).append(seg)
+    return [
+        group
+        for _, group in sorted(
+            buckets.items(), key=lambda kv: min(s["start"] for s in kv[1])
+        )
+    ]
 
 
 def build_chapters(
     selected: list[dict],
     top_keywords: list[str],
     outline: list[dict] | None = None,
+    max_chapters: int = 8,
 ) -> list[dict]:
     if not selected:
         return []
     titled_groups: list[tuple[str | None, list[dict]]] = []
     outline = outline or []
     if outline:
-        buckets: dict[int, list[dict]] = {}
-        for seg in selected:
-            idx = seg.get("scene_id")
-            if idx is None:
-                idx = _outline_index((seg["start"] + seg["end"]) / 2.0, outline)
-            idx = -1 if idx is None else int(idx)
-            buckets.setdefault(idx, []).append(seg)
-        for idx, group in sorted(
-            buckets.items(), key=lambda kv: min(s["start"] for s in kv[1])
-        ):
+        for group in _outline_groups(selected, outline):
+            idx = int(group[0].get("scene_id", -1))
             title = outline[idx]["title"] if 0 <= idx < len(outline) else None
             titled_groups.append((title, group))
     else:
-        groups: list[list[dict]] = []
-        current: list[dict] = [selected[0]]
-        for seg in selected[1:]:
-            gap = seg["start"] - current[-1]["end"]
-            same_scene = seg.get("scene_id") == current[-1].get("scene_id")
-            prev_kw = set(current[-1].get("keywords", [])[:2])
-            cur_kw = set(seg.get("keywords", [])[:2])
-            shared = len(prev_kw & cur_kw) > 0
-            if gap > 35 or (not same_scene and gap > 4) or (len(current) >= 3 and not shared):
-                groups.append(current)
-                current = [seg]
-            else:
-                current.append(seg)
-        groups.append(current)
-        titled_groups = [(None, g) for g in groups]
+        titled_groups = [(None, g) for g in _group_selected(selected, max_chapters)]
 
     chapters = []
     for i, (outline_title, group) in enumerate(titled_groups, 1):
-        text = " ".join(g.get("text", "") for g in group).strip()
+        text = " ".join(
+            g.get("semantic_text") or g.get("text", "") for g in group
+        ).strip()
         kws = []
         for g in group:
             for k in g.get("keywords", []):
@@ -287,7 +412,12 @@ def build_summary(
 ) -> dict:
     kw_scores = keyword_scores([t for t in segment_texts if t], topk=12)
     top_keywords = list(kw_scores.keys())
-    chapters = build_chapters(selected, top_keywords, outline=outline)
+    chapters = build_chapters(
+        selected,
+        top_keywords,
+        outline=outline,
+        max_chapters=config.max_chapters,
+    )
     overview = build_overview(duration, selected, top_keywords, chapters)
     overview, mode = maybe_llm_polish(overview, chapters, config)
     return {

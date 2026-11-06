@@ -1,5 +1,6 @@
 param(
-    [switch]$Optional
+    [switch]$Optional,
+    [switch]$Vlm
 )
 
 $ErrorActionPreference = 'Stop'
@@ -41,7 +42,13 @@ $env:TMP = Join-Path $cacheRoot 'tmp'
 $env:TEMP = $env:TMP
 New-Item -ItemType Directory -Force -Path $env:PIP_CACHE_DIR, $env:TMP | Out-Null
 
-$requirements = if ($Optional) { 'requirements-optional.txt' } else { 'requirements-core.txt' }
+$requirements = if ($Vlm) {
+    'requirements-vlm.txt'
+} elseif ($Optional) {
+    'requirements-optional.txt'
+} else {
+    'requirements-core.txt'
+}
 Write-Host "Installing $requirements ..."
 $ErrorActionPreference = 'Continue'
 & $venvPython -m pip install --no-warn-script-location --progress-bar off `
@@ -53,4 +60,7 @@ Write-Host 'Environment ready.'
 Write-Host 'Run: powershell -ExecutionPolicy Bypass -File .\scripts\run_demo.ps1'
 if (-not $Optional) {
     Write-Host 'For speech transcription and OCR: .\scripts\setup.ps1 -Optional'
+}
+if (-not $Vlm) {
+    Write-Host 'For local visual-language understanding: .\scripts\setup.ps1 -Vlm'
 }

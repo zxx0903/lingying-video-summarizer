@@ -24,17 +24,20 @@ from .ffmpeg_utils import (
     probe,
     write_json,
 )
-from .fusion import score_segments
+from .fusion import apply_template_prior, score_segments
 from .ocr import ocr_frames
 from .render import (
     build_selected_srt,
+    contact_sheet_as_pdf,
     make_contact_sheet,
     make_timeline,
     render_keyframes,
     render_selected_clips,
 )
+from .exports import write_summary_exports
 from .select import select_segments
 from .summarize import build_summary, load_outline
+from .templates import resolve_template_keywords
 from .text_features import (
     keyword_hit_ratio,
     keyword_scores,
@@ -44,6 +47,12 @@ from .text_features import (
     tokenize,
 )
 from .visual_features import detect_scene_boundaries, segment_visual_stats
+from .vlm import (
+    attach_visual_evidence,
+    combine_semantic_text,
+    describe_video_frames,
+    vlm_availability,
+)
 
 ProgressFn = Callable[[str, float], None]
 
@@ -170,7 +179,7 @@ def attach_features(
 ) -> None:
     visual_cache: dict[str, dict] = {}
     for seg in segments:
-        text = seg.get("text", "")
+        text = seg.get("semantic_text") or seg.get("text", "")
         toks = tokenize(text)
         chars = len(text.replace(" ", ""))
         dur = max(0.1, seg["end"] - seg["start"])
@@ -299,7 +308,7 @@ def run_pipeline(
                 + str(exc).splitlines()[0][:160]
             )
     if not cues:
-        warnings.append("没有字幕或屏幕文字，文本模态将被降权。")
+        asr_mode = "none"
 
     progress("切分片段", 0.36)
     segments = build_segments(
@@ -327,8 +336,48 @@ def run_pipeline(
                 scene_times[sid + 1] if sid + 1 < len(scene_times) else info.duration
             )
 
-    progress("计算多模态特征", 0.44)
-    texts = [s.get("text", "") for s in segments]
+    progress("理解画面语义", 0.48)
+    vlm_mode = "none"
+    if config.vlm_enabled and frames:
+        available, availability_message = vlm_availability(config)
+        if not available:
+            warnings.append("VLM 未启用: " + availability_message)
+        else:
+            try:
+                evidence = describe_video_frames(
+                    frames,
+                    fps,
+                    info.duration,
+                    scene_times,
+                    config,
+                    cache_path=out_dir / "vlm_frames.json",
+                    progress=lambda done, total, msg: progress(
+                        msg, 0.48 + 0.08 * (done / max(1, total))
+                    ),
+                )
+                attach_visual_evidence(segments, evidence)
+                if evidence:
+                    vlm_mode = config.vlm_backend
+            except Exception as exc:
+                warnings.append(
+                    "VLM 画面理解失败，已回退到字幕/语音/OCR: "
+                    + str(exc).splitlines()[0][:200]
+                )
+
+    for seg in segments:
+        semantic_text = combine_semantic_text(seg)
+        if semantic_text:
+            seg["semantic_text"] = semantic_text
+    if not cues and vlm_mode == "none":
+        warnings.append("没有字幕、语音或画面语义，文本模态将被降权。")
+    content_mode = asr_mode
+    if vlm_mode != "none":
+        content_mode = (
+            "vlm" if asr_mode == "none" else f"{asr_mode}+vlm"
+        )
+
+    progress("计算多模态特征", 0.56)
+    texts = [s.get("semantic_text") or s.get("text", "") for s in segments]
     kw_scores = keyword_scores([t for t in texts if t], topk=15)
     global_kws = list(kw_scores.keys())
     attach_features(
@@ -341,10 +390,17 @@ def run_pipeline(
         fps,
     )
 
-    progress("融合评分", 0.62)
+    progress("融合评分", 0.66)
     score_segments(segments, config.weights, has_audio=bool(info.has_audio and audio_samples is not None))
+    template_keywords = resolve_template_keywords(
+        config.template_id, config.custom_keywords
+    )
+    apply_template_prior(segments, template_keywords)
     target = config.resolve_target(info.duration)
     selected = select_segments(segments, target)
+    for seg in segments:
+        seg.pop("_original_start", None)
+        seg.pop("_original_end", None)
     selected_ids = {s["id"] for s in selected}
     for seg in segments:
         seg["selected"] = seg["id"] in selected_ids
@@ -363,14 +419,22 @@ def run_pipeline(
                 input_path,
                 selected,
                 clips_dir,
+                output_format=config.output_format,
+                output_height=config.output_height,
                 progress=lambda done, total, msg: progress(
                     msg, 0.76 + 0.16 * (done / max(1, total))
                 ),
             )
-            keyframes = render_keyframes(input_path, selected, kf_dir)
+            keyframes = render_keyframes(
+                input_path,
+                selected,
+                kf_dir,
+                source_frames=frames,
+                frame_fps=fps,
+            )
             clip_paths = [c["path"] for c in clips]
             if len(clip_paths) > 1:
-                preview_path = out_dir / "preview.mp4"
+                preview_path = out_dir / f"preview.{config.output_format}"
                 concat_clips(clip_paths, preview_path)
             elif clip_paths:
                 preview_path = Path(clip_paths[0])
@@ -390,12 +454,16 @@ def run_pipeline(
         timeline_path = None
 
     sheet_path = out_dir / "keyframes.jpg"
+    keyframe_pdf_path: Path | None = None
     try:
         if keyframes:
             make_contact_sheet(
                 [Path(k["path"]) for k in keyframes],
                 [k["label"] for k in keyframes],
                 sheet_path,
+            )
+            keyframe_pdf_path = contact_sheet_as_pdf(
+                sheet_path, out_dir / "keyframes.pdf"
             )
     except Exception as exc:
         warnings.append(f"关键帧拼图失败: {exc}")
@@ -411,7 +479,7 @@ def run_pipeline(
     elapsed = time.time() - started
     selected_duration = sum(s["end"] - s["start"] for s in selected)
     result = {
-        "version": "0.1.0",
+        "version": "0.2.0",
         "input": {
             "name": input_path.name,
             "path": str(input_path),
@@ -423,6 +491,8 @@ def run_pipeline(
         },
         "config": config.to_dict(),
         "asr_mode": asr_mode,
+        "vlm_mode": vlm_mode,
+        "content_mode": content_mode,
         "outline": outline,
         "summary": summary,
         "segments": segments,
@@ -435,9 +505,14 @@ def run_pipeline(
                 "end": s["end"],
                 "score": s["score"],
                 "text": s.get("text", ""),
+                "semantic_text": s.get("semantic_text", ""),
+                "visual_description": s.get("visual_description", ""),
+                "visual_evidence": s.get("visual_evidence", []),
                 "keywords": s.get("keywords", []),
                 "modality": s.get("modality", {}),
                 "gate": s.get("gate", {}),
+                "template_hits": s.get("template_hits", []),
+                "template_bonus": s.get("template_bonus", 0.0),
                 "clip": _rel(Path(s["clip"]), out_dir) if s.get("clip") else None,
             }
             for s in selected
@@ -451,8 +526,16 @@ def run_pipeline(
         "artifacts": {
             "timeline": _rel(timeline_path, out_dir) if timeline_path else None,
             "contact_sheet": _rel(sheet_path, out_dir) if sheet_path else None,
+            "keyframes_pdf": (
+                _rel(keyframe_pdf_path, out_dir) if keyframe_pdf_path else None
+            ),
             "srt": _rel(srt_out, out_dir) if srt_out else None,
             "preview": _rel(preview_path, out_dir) if preview_path else None,
+            "vlm_frames": (
+                "vlm_frames.json"
+                if vlm_mode != "none" and (out_dir / "vlm_frames.json").exists()
+                else None
+            ),
         },
         "metrics": {
             "duration": round(info.duration, 2),
@@ -463,11 +546,19 @@ def run_pipeline(
             "selected_count": len(selected),
             "frame_fps": round(fps, 3),
             "frame_count": len(frames),
+            "visual_evidence_count": sum(
+                len(seg.get("visual_evidence", [])) for seg in segments
+            ),
             "processing_seconds": round(elapsed, 2),
             "realtime_factor": round(elapsed / max(1e-6, info.duration), 3),
         },
         "warnings": warnings,
     }
+    try:
+        result["artifacts"].update(write_summary_exports(result, out_dir))
+    except Exception as exc:
+        warnings.append(f"文本摘要导出失败: {exc}")
+        result["warnings"] = warnings
 
     progress("保存结果", 0.98)
     result = _jsonable(result)

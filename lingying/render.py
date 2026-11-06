@@ -3,10 +3,13 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
+import cv2
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from .asr import Cue, cues_to_srt
 from .ffmpeg_utils import concat_clips, extract_frame_at, render_clip
+from .visual_features import frame_stats
 
 FONT_CANDIDATES = [
     r"C:\Windows\Fonts\msyh.ttc",
@@ -66,6 +69,12 @@ def make_contact_sheet(
     canvas.save(out_path, quality=92)
 
 
+def contact_sheet_as_pdf(image_path: Path, pdf_path: Path) -> Path:
+    with Image.open(image_path) as image:
+        image.convert("RGB").save(pdf_path, "PDF", resolution=120.0)
+    return pdf_path
+
+
 def make_timeline(
     segments: list[dict],
     selected_ids: set[str],
@@ -122,15 +131,23 @@ def render_selected_clips(
     video: Path,
     selected: list[dict],
     clips_dir: Path,
+    output_format: str = "mp4",
+    output_height: int | None = None,
     progress=None,
 ) -> list[dict]:
     clips_dir.mkdir(parents=True, exist_ok=True)
+    output_format = output_format.lower().lstrip(".")
+    if output_format not in {"mp4", "mov", "avi"}:
+        output_format = "mp4"
     results = []
     for i, seg in enumerate(selected, 1):
-        out = clips_dir / f"clip_{i:02d}_{int(seg['start'])}-{int(seg['end'])}.mp4"
+        out = (
+            clips_dir
+            / f"clip_{i:02d}_{int(seg['start'])}-{int(seg['end'])}.{output_format}"
+        )
         if progress:
             progress(i - 1, len(selected), f"渲染片段 {i}/{len(selected)}")
-        render_clip(video, seg["start"], seg["end"], out)
+        render_clip(video, seg["start"], seg["end"], out, height=output_height)
         seg["clip"] = str(out)
         results.append({"index": i, "path": str(out), "segment_id": seg["id"]})
     if progress:
@@ -142,17 +159,81 @@ def render_keyframes(
     video: Path,
     selected: list[dict],
     frames_dir: Path,
+    source_frames: list[Path] | None = None,
+    frame_fps: float = 1.0,
     per_clip: int = 3,
 ) -> list[dict]:
     frames_dir.mkdir(parents=True, exist_ok=True)
     out = []
+    stats_cache: dict[int, dict] = {}
+
+    def cached_stats(index: int) -> dict:
+        if index not in stats_cache:
+            stats_cache[index] = frame_stats(source_frames[index])
+        return stats_cache[index]
+
     for i, seg in enumerate(selected, 1):
         dur = seg["end"] - seg["start"]
-        picks = [0.55, 0.75, 0.92] if per_clip == 3 else [
-            (j + 0.5) / per_clip for j in range(per_clip)
-        ]
-        for j, ratio in enumerate(picks[:per_clip], 1):
-            t = seg["start"] + dur * ratio
+        candidates: list[tuple[float, int, Path]] = []
+        if source_frames:
+            for index, frame_path in enumerate(source_frames):
+                t = index / max(0.1, frame_fps)
+                if seg["start"] + 0.15 <= t <= seg["end"] - 0.15:
+                    candidates.append((t, index, frame_path))
+        if candidates:
+            buckets: list[list[tuple[float, int, Path]]] = [[] for _ in range(per_clip)]
+            count = len(candidates)
+            for pos, item in enumerate(candidates):
+                bucket = min(per_clip - 1, int(pos * per_clip / max(1, count)))
+                buckets[bucket].append(item)
+            selected_times: list[float] = []
+            for j, bucket in enumerate(buckets):
+                if not bucket:
+                    ratio = (j + 0.5) / per_clip
+                    selected_times.append(seg["start"] + dur * ratio)
+                    continue
+                scored = []
+                for t, _index, path in bucket:
+                    stats = cached_stats(_index)
+                    brightness = float(stats.get("brightness", 0.0))
+                    exposure = max(0.0, 1.0 - abs(brightness - 0.52) * 2.2)
+                    saturation = float(stats.get("saturation", 0.0))
+                    colorfulness = float(stats.get("colorfulness", 0.0))
+                    artifact_penalty = min(
+                        1.0,
+                        max(0.0, saturation - 0.65) * 2.0
+                        + max(0.0, colorfulness - 0.30) * 1.5,
+                    )
+                    transition_penalty = 0.0
+                    gray = stats.get("gray")
+                    if gray is not None and source_frames:
+                        diffs = []
+                        for neighbor in (_index - 1, _index + 1):
+                            if 0 <= neighbor < len(source_frames):
+                                neighbor_gray = cached_stats(neighbor).get("gray")
+                                if neighbor_gray is not None:
+                                    diffs.append(
+                                        float(np.mean(cv2.absdiff(gray, neighbor_gray)) / 255.0)
+                                    )
+                        if diffs:
+                            transition_penalty = min(1.0, float(np.mean(diffs)) / 0.30)
+                    score = (
+                        0.45 * float(stats.get("edge_density", 0.0))
+                        + 0.25 * float(stats.get("contrast", 0.0))
+                        + 0.15 * colorfulness
+                        + 0.15 * exposure
+                        - 1.25 * transition_penalty
+                        - 0.75 * artifact_penalty
+                    )
+                    scored.append((score, t))
+                selected_times.append(max(scored)[1])
+        else:
+            selected_times = [
+                seg["start"] + dur * ((j + 0.5) / per_clip)
+                for j in range(per_clip)
+            ]
+
+        for j, t in enumerate(selected_times[:per_clip], 1):
             t = max(t, float(seg.get("scene_start", seg["start"])) + 0.3)
             t = min(t, float(seg.get("scene_end", seg["end"])) - 0.1)
             t = min(t, seg["end"] - 0.1)

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import unittest
 
-from lingying.ocr import OcrSample, merge_ocr_samples
+import numpy as np
+
+from lingying.ocr import OcrSample, _screen_crops, merge_ocr_samples
 
 
 class MergeOcrSamplesTest(unittest.TestCase):
@@ -24,6 +26,13 @@ class MergeOcrSamplesTest(unittest.TestCase):
         cues = merge_ocr_samples([OcrSample(5.0, "地址锁存器")], 20.0)
         self.assertEqual(len(cues), 1)
         self.assertEqual(cues[0].end, 20.0)
+
+    def test_detects_bright_screen_region(self):
+        image = np.zeros((480, 640, 3), dtype=np.uint8)
+        image[90:310, 120:500] = 245
+        crops = _screen_crops(image)
+        self.assertTrue(crops)
+        self.assertGreater(crops[0].shape[1], 500)
 
 
 if __name__ == "__main__":

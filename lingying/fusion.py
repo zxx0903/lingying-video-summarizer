@@ -128,6 +128,28 @@ def score_segments(
             seg["score"] = round(seg["score"] * 0.92, 4)
 
 
+def apply_template_prior(segments: list[dict], keywords: list[str]) -> None:
+    """Apply a small, inspectable prior for a selected scenario template."""
+    keywords = [word.strip() for word in keywords if word and word.strip()]
+    if not keywords:
+        for seg in segments:
+            seg["template_hits"] = []
+            seg["template_bonus"] = 0.0
+        return
+
+    for seg in segments:
+        text = (
+            seg.get("semantic_text") or seg.get("text", "") or ""
+        ).lower()
+        hits = [word for word in keywords if word.lower() in text]
+        # Hitting two different template cues is materially stronger than one
+        # generic word. Cap the bonus so evidence from the video still dominates.
+        bonus = min(0.10, 0.035 * len(hits))
+        seg["template_hits"] = hits
+        seg["template_bonus"] = round(bonus, 4)
+        seg["score"] = round(min(1.0, float(seg.get("score", 0.0)) + bonus), 4)
+
+
 def apply_feedback(
     segments: list[dict],
     labels: dict[str, int],

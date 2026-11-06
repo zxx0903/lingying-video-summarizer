@@ -1,0 +1,40 @@
+{
+  "note": "Provisional topic intervals transcribed from the public Chinese subtitle. Replace with EDUVSUM official labels for benchmark reporting.",
+  "important_segments": [
+    {
+      "start": 0.0,
+      "end": 130.0,
+      "label": "信息时代与计算历史的导入"
+    },
+    {
+      "start": 149.0,
+      "end": 226.0,
+      "label": "算盘及其计算与存储方式"
+    },
+    {
+      "start": 226.0,
+      "end": 257.0,
+      "label": "星盘、计算尺等早期计算工具"
+    },
+    {
+      "start": 257.0,
+      "end": 360.0,
+      "label": "Computer 职业与莱布尼茨乘法器"
+    },
+    {
+      "start": 360.0,
+      "end": 449.0,
+      "label": "计算表、弹道问题与自动化需求"
+    },
+    {
+      "start": 449.0,
+      "end": 550.0,
+      "label": "差分机、分析机与 Ada Lovelace"
+    },
+    {
+      "start": 550.0,
+      "end": 680.0,
+      "label": "Hollerith 制表机、人口普查与 IBM"
+    }
+  ]
+}

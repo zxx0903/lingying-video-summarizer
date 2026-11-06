@@ -162,16 +162,19 @@ def render_clip(
     start: float,
     end: float,
     out_path: str | Path,
+    height: int | None = None,
 ) -> None:
     duration = max(0.4, float(end) - float(start))
-    run_ffmpeg(
-        [
-            "-ss",
-            f"{max(0.0, start):.3f}",
-            "-i",
-            str(video),
-            "-t",
-            f"{duration:.3f}",
+    suffix = Path(out_path).suffix.lower()
+    video_filters = []
+    if height:
+        height = max(144, int(height))
+        video_filters.append(f"scale=-2:{height}")
+    if suffix == ".avi":
+        video_codec = ["-c:v", "mpeg4", "-q:v", "4"]
+        audio_codec = ["-c:a", "libmp3lame", "-b:a", "128k"]
+    else:
+        video_codec = [
             "-c:v",
             "libx264",
             "-preset",
@@ -180,10 +183,19 @@ def render_clip(
             "23",
             "-pix_fmt",
             "yuv420p",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "128k",
+        ]
+        audio_codec = ["-c:a", "aac", "-b:a", "128k"]
+    run_ffmpeg(
+        [
+            "-ss",
+            f"{max(0.0, start):.3f}",
+            "-i",
+            str(video),
+            "-t",
+            f"{duration:.3f}",
+            *(["-vf", ",".join(video_filters)] if video_filters else []),
+            *video_codec,
+            *audio_codec,
             "-avoid_negative_ts",
             "make_zero",
             str(out_path),

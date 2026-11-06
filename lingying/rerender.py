@@ -19,19 +19,26 @@ def rerender_selection(result: dict, out_dir: Path, ids: set[str]):
     selected = [s for s in result["segments"] if s["id"] in ids]
     selected.sort(key=lambda s: s["start"])
     stamp = str(int(time.time()))
+    config = config_from_result(result)
     clips = render_selected_clips(
-        Path(result["input"]["path"]), selected, out_dir / "clips_adjusted" / stamp
+        Path(result["input"]["path"]),
+        selected,
+        out_dir / "clips_adjusted" / stamp,
+        output_format=config.output_format,
+        output_height=config.output_height,
     )
-    preview = out_dir / f"preview_adjusted_{stamp}.mp4"
+    preview = out_dir / f"preview_adjusted_{stamp}.{config.output_format}"
     if len(clips) > 1:
         concat_clips([c["path"] for c in clips], preview)
     elif clips:
         preview = Path(clips[0]["path"])
-    config = config_from_result(result)
     summary = build_summary(
         result["input"]["duration"],
         selected,
-        [s.get("text", "") for s in result["segments"]],
+        [
+            s.get("semantic_text") or s.get("text", "")
+            for s in result["segments"]
+        ],
         config,
         outline=result.get("outline"),
     )

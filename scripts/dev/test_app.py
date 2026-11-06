@@ -16,13 +16,14 @@ def main() -> None:
         sys.exit(1)
 
     buttons = at.sidebar.button
-    if buttons:
-        buttons[0].click()
+    run_button = next((button for button in buttons if button.label == "开始生成摘要"), None)
+    if run_button is not None:
+        run_button.click()
         at.run()
         print("after click exceptions:", [str(e) for e in at.exception])
         print("tabs:", [t.label for t in at.tabs])
         print("metrics:", [(m.label, m.value) for m in at.metric])
-        if at.exception:
+        if at.exception or not at.tabs or not at.metric:
             sys.exit(1)
 
 

@@ -9,8 +9,15 @@ import pandas as pd
 import streamlit as st
 
 from lingying.config import PipelineConfig, Weights
+from lingying.feedback import record_selection_feedback
 from lingying.pipeline import run_pipeline
 from lingying.rerender import rerender_selection
+from lingying.templates import (
+    SUMMARY_TEMPLATES,
+    load_custom_templates,
+    save_custom_template,
+)
+from lingying.vlm import vlm_availability
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_INPUT = ROOT / "data" / "input"
@@ -128,7 +135,7 @@ with st.sidebar:
     else:
         ratio = 0.25
         target_seconds = float(
-            st.slider("目标摘要时长（秒）", 30, 900, 180, 30)
+            st.slider("目标摘要时长（分钟）", 1, 10, 3, 1) * 60
         )
 
     st.caption("③ 模态权重（会自动按可用性重新归一化）")
@@ -146,6 +153,51 @@ with st.sidebar:
         value=True,
         help="适合 PPT、板书和实验演示视频。需要 rapidocr-onnxruntime。",
     )
+    vlm_probe = PipelineConfig()
+    vlm_ready, vlm_detail = vlm_availability(vlm_probe)
+    use_vlm = st.checkbox(
+        "使用视觉语言模型理解画面（需本地 VLM）",
+        value=False,
+        disabled=not vlm_ready,
+        help=(
+            "为场景关键帧生成画面描述，适用于无字幕、无清晰文字的视频。"
+            f" 当前状态：{vlm_detail}"
+        ),
+    )
+    template_names = {
+        item.id: item.name
+        for item in (*SUMMARY_TEMPLATES, *load_custom_templates())
+    }
+    template_id = st.selectbox(
+        "场景模板",
+        options=list(template_names),
+        format_func=lambda item: template_names[item],
+    )
+    custom_keywords_text = st.text_input(
+        "自定义主题关键词",
+        placeholder="例如：梯度下降, 过拟合, 实验步骤",
+        help="多个关键词用逗号分隔，只作为可解释的小幅排序先验。",
+    )
+    with st.expander("保存为自定义模板"):
+        template_name = st.text_input("模板名称", key="new_template_name")
+        if st.button("保存模板", key="save_template_button"):
+            try:
+                parsed_keywords = [
+                    item.strip()
+                    for item in custom_keywords_text.replace("，", ",").split(",")
+                    if item.strip()
+                ]
+                save_custom_template(template_name, parsed_keywords)
+                st.success("模板已保存")
+                st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
+    max_chapters = st.slider("最大章节数", 3, 12, 8, 1)
+    output_profile = st.selectbox(
+        "导出规格",
+        ["保持原尺寸 · MP4", "720P · MP4", "1080P · MP4", "720P · MOV", "720P · AVI"],
+        index=0,
+    )
 
     run_clicked = st.button(
         "开始生成摘要", type="primary", width="stretch", disabled=video_path is None
@@ -161,6 +213,28 @@ if run_clicked and video_path is not None:
         weights=Weights(w_text, w_audio, w_visual),
         asr_enabled=use_asr,
         ocr_enabled=use_ocr,
+        vlm_enabled=use_vlm,
+        template_id=template_id,
+        custom_keywords=[
+            item.strip()
+            for item in custom_keywords_text.replace("，", ",").split(",")
+            if item.strip()
+        ],
+        max_chapters=max_chapters,
+        output_height=(
+            720
+            if output_profile.startswith(("720P", "1080P")) and "1080P" not in output_profile
+            else 1080
+            if output_profile.startswith("1080P")
+            else None
+        ),
+        output_format=(
+            "mov"
+            if "MOV" in output_profile
+            else "avi"
+            if "AVI" in output_profile
+            else "mp4"
+        ),
     )
     bar = st.progress(0.0, text="准备中…")
     status = st.empty()
@@ -219,13 +293,26 @@ content_source = {
     "whisper": "Whisper 语音转写",
     "ocr": "屏幕文字 OCR",
 }.get(result.get("asr_mode"), "未识别到文本")
-if result.get("asr_mode") == "none":
+content_mode = result.get("content_mode", result.get("asr_mode", "none"))
+source_labels = {
+    "srt": "同名字幕",
+    "whisper": "Whisper 语音转写",
+    "ocr": "屏幕文字 OCR",
+    "vlm": "视觉语言模型",
+    "srt+vlm": "同名字幕 + 视觉语言模型",
+    "whisper+vlm": "Whisper 语音转写 + 视觉语言模型",
+    "ocr+vlm": "屏幕文字 OCR + 视觉语言模型",
+}
+if content_mode == "none":
     st.error(
-        "没有获得字幕、语音转写或屏幕文字，当前只能按音频和画面变化生成片段，"
-        "无法可靠概括内容。请安装可选语音/OCR依赖，或为视频提供同名字幕。"
+        "没有获得字幕、语音转写、屏幕文字或画面语义，当前只能按音频和画面变化"
+        "生成片段，无法可靠概括内容。请启用 VLM、安装语音/OCR依赖，或提供同名字幕。"
     )
 else:
-    st.caption(f"内容来源：{content_source}")
+    st.caption(
+        "内容来源："
+        + source_labels.get(content_mode, content_source)
+    )
 
 m = result["metrics"]
 cols = st.columns(5)
@@ -273,6 +360,12 @@ with tab1:
                 )
                 if clip:
                     st.video(str(out_dir / clip))
+                evidence = []
+                for seg in result.get("selected", []):
+                    if seg["id"] in cid and seg.get("visual_description"):
+                        evidence.append(seg["visual_description"].replace("\n", "；"))
+                if evidence:
+                    st.caption("视觉证据：" + "；".join(evidence[:3]))
     with right:
         st.subheader("原始视频")
         st.video(str(result["input"]["path"]))
@@ -296,7 +389,8 @@ with tab2:
                 "结束": _fmt(seg["end"]),
                 "时长": round(seg["end"] - seg["start"], 1),
                 "重要度": round(seg.get("score", 0.0), 3),
-                "文本": (seg.get("text", "") or "（无字幕）")[:46],
+                "文本": (seg.get("semantic_text") or seg.get("text", "") or "（无文本证据）")[:46],
+                "画面理解": (seg.get("visual_description", "") or "")[:46],
                 "关键词": "、".join(seg.get("keywords", [])[:3]),
                 "保留": seg["id"] in chosen,
             }
@@ -312,7 +406,7 @@ with tab2:
                 "重要度", min_value=0.0, max_value=1.0, format="%.3f"
             ),
         },
-        disabled=["序号", "开始", "结束", "时长", "重要度", "文本", "关键词"],
+        disabled=["序号", "开始", "结束", "时长", "重要度", "文本", "画面理解", "关键词"],
         key="seg_editor",
     )
     keep_ids = set(edited.loc[edited["保留"], "id"].tolist())
@@ -322,6 +416,7 @@ with tab2:
         else:
             with st.spinner("正在重新渲染选中片段…"):
                 preview, new_summary, clips = rerender_selection(result, out_dir, keep_ids)
+            record_selection_feedback(result, out_dir, keep_ids)
             st.session_state["chosen_ids"] = keep_ids
             st.session_state["adjusted_preview"] = str(preview)
             st.session_state["adjusted_summary"] = new_summary
@@ -335,7 +430,12 @@ with tab2:
         hits = [
             s
             for s in result["segments"]
-            if q.lower() in (s.get("text", "") or "").lower()
+            if q.lower()
+            in (
+                s.get("semantic_text")
+                or s.get("text", "")
+                or ""
+            ).lower()
             or any(q in k for k in s.get("keywords", []))
         ]
         if not hits:
@@ -345,6 +445,27 @@ with tab2:
                 f"**{_fmt(s['start'])} - {_fmt(s['end'])}**　重要度 {s.get('score', 0):.3f}  \n"
                 f"{(s.get('text') or '（无字幕）')[:120]}"
             )
+        if hits and st.button("生成主题子摘要", key="query_summary_button"):
+            target_seconds = float(result["metrics"].get("target_seconds") or 120.0)
+            query_ids: set[str] = set()
+            query_duration = 0.0
+            for seg in sorted(hits, key=lambda item: item.get("score", 0.0), reverse=True):
+                duration = float(seg["end"]) - float(seg["start"])
+                if query_ids and query_duration + duration > target_seconds * 1.05:
+                    continue
+                query_ids.add(seg["id"])
+                query_duration += duration
+                if query_duration >= target_seconds * 0.9:
+                    break
+            with st.spinner("正在按主题检索结果重新生成子摘要…"):
+                preview, query_summary, _clips = rerender_selection(
+                    result, out_dir, query_ids
+                )
+            st.session_state["chosen_ids"] = query_ids
+            st.session_state["adjusted_preview"] = str(preview)
+            st.session_state["adjusted_summary"] = query_summary
+            st.success(f"已生成主题子摘要：{len(query_ids)} 个片段。")
+            st.rerun()
 
 with tab3:
     st.subheader("关键帧")
@@ -400,11 +521,47 @@ with tab5:
                 mime="application/zip",
                 width="stretch",
             )
+    c4, c5, c6 = st.columns(3)
+    with c4:
+        text_rel = result.get("artifacts", {}).get("text")
+        if text_rel and (out_dir / text_rel).exists():
+            st.download_button(
+                "下载文本摘要 TXT",
+                data=(out_dir / text_rel).read_bytes(),
+                file_name="summary.txt",
+                mime="text/plain",
+                width="stretch",
+            )
+    with c5:
+        docx_rel = result.get("artifacts", {}).get("docx")
+        if docx_rel and (out_dir / docx_rel).exists():
+            st.download_button(
+                "下载结构化摘要 Word",
+                data=(out_dir / docx_rel).read_bytes(),
+                file_name="summary.docx",
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "wordprocessingml.document"
+                ),
+                width="stretch",
+            )
+    with c6:
+        pdf_rel = result.get("artifacts", {}).get("keyframes_pdf")
+        if pdf_rel and (out_dir / pdf_rel).exists():
+            st.download_button(
+                "下载关键帧 PDF",
+                data=(out_dir / pdf_rel).read_bytes(),
+                file_name="keyframes.pdf",
+                mime="application/pdf",
+                width="stretch",
+            )
     st.divider()
     st.subheader("运行信息")
     st.json(
         {
             "asr_mode": result.get("asr_mode"),
+            "vlm_mode": result.get("vlm_mode"),
+            "content_mode": result.get("content_mode"),
             "metrics": result.get("metrics"),
             "warnings": result.get("warnings"),
             "output_dir": str(out_dir),

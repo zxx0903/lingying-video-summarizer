@@ -2,6 +2,7 @@
 runtime/
 .venv/
 data/cache/
+data/templates/user_templates.json
 
 # Generated outputs
 outputs/*

@@ -21,6 +21,10 @@ STOPWORDS = set(
 一个 一种 可以 能够 通过 进行 以及 因为 所以 如果 那么 然后 就是 这样 那样 什么
 怎么 为什么 如何 已经 还是 但是 并且 同时 例如 比如 一些 这些 那些 自己 大家 时候
 今天 下面 上面 首先 其次 最后 其实 比较 主要 相关 内容 问题 方法 情况 方面 过程
+许多 这种 这时 那时 其中 之后 之前 同时 于是 仍然 只是 一个 一种
+the a an and or but to of in on for with from by is are was were be been being this that
+these those it its they them we you he she i as at into about over under can could would
+should may might will just also more most much many some any not no if then than so because
 """.split()
 )
 
@@ -61,6 +65,19 @@ CUE_WORDS = [
     "区别",
     "步骤",
     "回顾",
+    "important",
+    "key",
+    "remember",
+    "conclusion",
+    "definition",
+    "formula",
+    "therefore",
+    "summary",
+    "steps",
+    "for example",
+    "difference",
+    "principle",
+    "however",
 ]
 
 
