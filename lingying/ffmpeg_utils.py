@@ -19,6 +19,8 @@ class MediaInfo:
     has_audio: bool
     video_codec: str = ""
     audio_codec: str = ""
+    has_subtitles: bool = False
+    subtitle_codec: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -101,6 +103,10 @@ def probe(path: str | Path) -> MediaInfo:
     m = re.search(r"Audio:\s*([a-zA-Z0-9_\-]+)", text)
     if m:
         acodec = m.group(1)
+    subtitle_codec = ""
+    m = re.search(r"Subtitle:\s*([a-zA-Z0-9_\-]+)", text)
+    if m:
+        subtitle_codec = m.group(1)
 
     if duration <= 0:
         raise RuntimeError(f"无法读取视频时长: {path}")
@@ -114,6 +120,8 @@ def probe(path: str | Path) -> MediaInfo:
         has_audio=has_audio,
         video_codec=vcodec,
         audio_codec=acodec,
+        has_subtitles=bool(subtitle_codec),
+        subtitle_codec=subtitle_codec,
     )
 
 
@@ -130,6 +138,21 @@ def extract_audio(video: str | Path, wav: str | Path) -> None:
             "-c:a",
             "pcm_s16le",
             str(wav),
+        ]
+    )
+
+
+def extract_embedded_subtitle(video: str | Path, subtitle: str | Path) -> None:
+    """Extract the first embedded subtitle stream as SRT."""
+    run_ffmpeg(
+        [
+            "-i",
+            str(video),
+            "-map",
+            "0:s:0",
+            "-c:s",
+            "srt",
+            str(subtitle),
         ]
     )
 

@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import unittest
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from lingying.config import PipelineConfig
 from lingying.summarize import build_summary
 from lingying.vlm import (
     VisualEvidence,
     attach_visual_evidence,
+    describe_frame,
     describe_video_frames,
     parse_visual_response,
     select_visual_samples,
@@ -120,6 +122,40 @@ class VlmEvidenceTest(unittest.TestCase):
             self.assertTrue(evidence)
             self.assertTrue(cache.exists())
             self.assertIn("python demo.py", cache.read_text(encoding="utf-8"))
+
+    def test_openai_compatible_backend_uses_configured_base_url(self):
+        with TemporaryDirectory() as tmp:
+            image = Path(tmp) / "frame.jpg"
+            image.write_bytes(b"image")
+            response = Mock()
+            response.raise_for_status.return_value = None
+            response.json.return_value = {
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                '{"description":"讲师展示公式","objects":["公式"],'
+                                '"actions":["展示"],"on_screen_text":"E=mc^2",'
+                                '"content_type":"slide","confidence":0.9}'
+                            )
+                        }
+                    }
+                ]
+            }
+            config = PipelineConfig(
+                vlm_backend="openai-compatible",
+                vlm_base_url="http://127.0.0.1:9999/v1",
+            )
+            with patch.dict(os.environ, {"VLM_API_KEY": "test-key"}), patch(
+                "lingying.vlm.requests.post",
+                return_value=response,
+            ) as post:
+                data = describe_frame(image, config)
+            self.assertEqual(data["description"], "讲师展示公式")
+            self.assertEqual(
+                post.call_args.args[0],
+                "http://127.0.0.1:9999/v1/chat/completions",
+            )
 
 
 if __name__ == "__main__":

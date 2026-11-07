@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import time
 import zipfile
@@ -303,13 +304,19 @@ content_source = {
     "whisper": "Whisper 语音转写",
     "ocr": "屏幕文字 OCR",
 }.get(result.get("asr_mode"), "未识别到文本")
+if result.get("asr_mode") == "srt":
+    content_source = {
+        "sidecar": "外挂字幕",
+        "embedded": "内嵌字幕",
+        "explicit": "指定字幕",
+    }.get(result.get("subtitle_source"), "字幕")
 content_mode = result.get("content_mode", result.get("asr_mode", "none"))
 source_labels = {
-    "srt": "同名字幕",
+    "srt": content_source,
     "whisper": "Whisper 语音转写",
     "ocr": "屏幕文字 OCR",
     "vlm": "视觉语言模型",
-    "srt+vlm": "同名字幕 + 视觉语言模型",
+    "srt+vlm": content_source + " + 视觉语言模型",
     "whisper+vlm": "Whisper 语音转写 + 视觉语言模型",
     "ocr+vlm": "屏幕文字 OCR + 视觉语言模型",
 }
@@ -333,8 +340,11 @@ cols[3].metric("片段数", f"{m['selected_count']}")
 cols[4].metric("处理耗时", f"{m['processing_seconds']:.1f}s")
 
 st.markdown(
-    f'<div class="card"><b>课程摘要</b><br>{summary["overview"]}<br>'
-    + " ".join(f'<span class="tag">{k}</span>' for k in summary.get("keywords", [])[:8])
+    f'<div class="card"><b>课程摘要</b><br>{html.escape(summary["overview"])}<br>'
+    + " ".join(
+        f'<span class="tag">{html.escape(str(k))}</span>'
+        for k in summary.get("keywords", [])[:8]
+    )
     + "</div>",
     unsafe_allow_html=True,
 )
@@ -570,6 +580,7 @@ with tab5:
     st.json(
         {
             "asr_mode": result.get("asr_mode"),
+            "subtitle_source": result.get("subtitle_source"),
             "vlm_mode": result.get("vlm_mode"),
             "content_mode": result.get("content_mode"),
             "metrics": result.get("metrics"),

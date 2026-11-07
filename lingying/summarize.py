@@ -63,8 +63,52 @@ def _outline_index(t: float, outline: list[dict]) -> int | None:
     return None
 
 
-def _summary_points(text: str, title: str, limit: int = 260) -> str:
-    """Pick informative sentences from OCR/ASR text instead of repeating headers."""
+def _summary_units(text: str, max_chars: int = 150) -> list[str]:
+    """Split long ASR sentences into summary-sized, order-preserving units."""
+    units: list[str] = []
+    for sentence in split_sentences(text):
+        sentence = re.sub(r"\s+", " ", sentence).strip()
+        if not sentence:
+            continue
+        if len(sentence) <= max_chars:
+            units.append(sentence)
+            continue
+        clauses = [
+            part.strip()
+            for part in re.split(r"(?<=[，,；;：:])\s*", sentence)
+            if part.strip()
+        ]
+        current = ""
+        for clause in clauses:
+            if len(clause) > max_chars and not current:
+                words = clause.split()
+                while words:
+                    chunk = ""
+                    while words and len(chunk) + len(words[0]) + 1 <= max_chars:
+                        chunk = f"{chunk} {words.pop(0)}".strip()
+                    if not chunk:
+                        chunk = words.pop(0)[:max_chars]
+                    units.append(chunk)
+                continue
+            candidate = f"{current} {clause}".strip()
+            if current and len(candidate) > max_chars:
+                units.append(current)
+                current = clause
+            else:
+                current = candidate
+        if current:
+            units.append(current)
+    return units
+
+
+def _summary_points(
+    text: str,
+    title: str,
+    keywords: list[str] | None = None,
+    limit: int = 220,
+) -> str:
+    """Pick diverse, informative clauses within a strict length budget."""
+    keywords = keywords or []
     priority = (
         "目的",
         "内容",
@@ -94,7 +138,7 @@ def _summary_points(text: str, title: str, limit: int = 260) -> str:
     )
     scored: list[tuple[float, int, str]] = []
     seen: set[str] = set()
-    for index, sentence in enumerate(split_sentences(text)):
+    for index, sentence in enumerate(_summary_units(text)):
         sentence = sentence.strip(" ；;，,")
         sentence = re.sub(r"\s+(?=[\u4e00-\u9fff])", "", sentence)
         sentence = re.sub(r"(?<=[\u4e00-\u9fff])\s+", "", sentence)
@@ -115,18 +159,37 @@ def _summary_points(text: str, title: str, limit: int = 260) -> str:
         score = min(2.0, len(compact) / 50.0)
         score += 3.0 if any(word in sentence for word in priority) else 0.0
         score += 1.0 if any(word in sentence for word in technical) else 0.0
+        lower_sentence = sentence.lower()
+        score += 1.4 * sum(
+            1 for keyword in keywords[:6] if keyword.lower() in lower_sentence
+        )
+        score += 0.8 * cue_word_score(sentence)
+        score += max(0.0, 0.5 - index * 0.05)
         scored.append((score, index, sentence))
 
-    picked = sorted(scored, key=lambda item: item[0], reverse=True)[:5]
+    ranked = sorted(scored, key=lambda item: item[0], reverse=True)
+    picked: list[tuple[float, int, str]] = []
+    picked_tokens: list[set[str]] = []
+    used = 0
+    for item in ranked:
+        sentence = item[2]
+        tokens = set(tokenize(sentence))
+        if any(jaccard(tokens, previous) > 0.72 for previous in picked_tokens):
+            continue
+        addition = len(sentence) + (1 if picked else 0)
+        if picked and used + addition > limit:
+            continue
+        if not picked and len(sentence) > limit:
+            sentence = sentence[:limit]
+        picked.append((item[0], item[1], sentence))
+        picked_tokens.append(tokens)
+        used += len(sentence) + (1 if len(picked) > 1 else 0)
+        if used >= limit * 0.85 or len(picked) >= 3:
+            break
     picked.sort(key=lambda item: item[1])
     out: list[str] = []
-    used = 0
     for _score, _index, sentence in picked:
-        addition = len(sentence) + (1 if out else 0)
-        if out and used + addition > limit:
-            break
         out.append(sentence)
-        used += addition
     return "；".join(out)
 
 
@@ -148,29 +211,7 @@ def _chapter_title(text: str, keywords: list[str], index: int) -> str:
             return title
     if not text:
         return f"第 {index} 部分"
-
-    candidates = split_sentences(text)
-    if not candidates:
-        candidates = [text]
-    ranked: list[tuple[float, int, str]] = []
-    for i, sentence in enumerate(candidates):
-        compact = "".join(sentence.split())
-        if len(compact) < 5:
-            continue
-        score = min(1.0, len(compact) / 70.0)
-        score += 1.2 * sum(1 for word in keywords[:4] if word in sentence)
-        score += 0.8 * cue_word_score(sentence)
-        if sentence.startswith(
-            ("相反", "甚至", "但是", "所以", "然而", "那么", "如果", "以及", "\"")
-        ):
-            score -= 0.8
-        if len(compact) > 90:
-            score -= 0.35
-        ranked.append((score, i, sentence))
-    if ranked:
-        ranked.sort(reverse=True)
-        candidates = [ranked[0][2]]
-    title = best_title(candidates[0], keywords[:2])
+    title = best_title(text, keywords[:4], limit=32)
     weak_starts = (
         "我们会了解",
         "我们会",
@@ -181,11 +222,18 @@ def _chapter_title(text: str, keywords: list[str], index: int) -> str:
         "相反",
         "而且",
         "以及",
+        "that ",
+        "have ",
+        "i ",
+        "you ",
+        "we ",
+        "they ",
+        "it ",
+        "this ",
     )
     if (
         title.startswith(weak_starts)
-        or len(title.strip("… ")) < 6
-        or len(title.strip("… ")) > 22
+        or len(title.strip("… ")) < 4
     ):
         keyword_title = "、".join(word for word in keywords[:3] if word)
         if keyword_title:
@@ -315,7 +363,7 @@ def build_chapters(
                 if k not in kws:
                     kws.append(k)
         title = outline_title or _chapter_title(text, kws, i)
-        snippet = _summary_points(text, title)
+        snippet = _summary_points(text, title, kws)
         chapters.append(
             {
                 "index": i,

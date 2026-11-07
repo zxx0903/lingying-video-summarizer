@@ -11,18 +11,22 @@ def _duration(seg: dict) -> float:
     return max(0.0, seg["end"] - seg["start"])
 
 
-def _clean_end(seg: dict, proposed_end: float) -> float:
+def _clean_end(seg: dict, proposed_end: float, min_keep: float = 6.5) -> float:
     """Snap a trimmed end to the nearest subtitle cue boundary."""
     cues = seg.get("cues") or []
     best = proposed_end
     for cue in cues:
         end = float(cue.get("end", 0.0))
-        if seg["start"] + 6.5 <= end <= proposed_end + 0.8:
+        if seg["start"] + min_keep <= end <= proposed_end + 0.15:
             best = end
     return best
 
 
-def _fit_target(selected: list[dict], target_seconds: float) -> list[dict]:
+def _fit_target(
+    selected: list[dict],
+    target_seconds: float,
+    min_clip: float = 9.0,
+) -> list[dict]:
     for seg in selected:
         seg.setdefault("_original_start", float(seg["start"]))
         seg.setdefault("_original_end", float(seg["end"]))
@@ -31,11 +35,18 @@ def _fit_target(selected: list[dict], target_seconds: float) -> list[dict]:
         return selected
     selected = sorted(selected, key=lambda s: s["start"])
     scale = target_seconds / max(1e-6, total)
+    minimum = min(
+        max(2.5, float(min_clip)),
+        max(2.5, target_seconds / max(1, len(selected))),
+    )
     for seg in selected:
         dur = _duration(seg)
-        keep = max(7.0, dur * scale)
+        keep = max(minimum, dur * scale)
         if keep < dur - 0.3:
-            seg["end"] = round(_clean_end(seg, seg["start"] + keep), 2)
+            seg["end"] = round(
+                _clean_end(seg, seg["start"] + keep, min_keep=minimum),
+                2,
+            )
     total = sum(_duration(s) for s in selected)
     for seg in reversed(selected):
         total = sum(_duration(s) for s in selected)
@@ -43,10 +54,13 @@ def _fit_target(selected: list[dict], target_seconds: float) -> list[dict]:
         if excess <= 0.3:
             break
         dur = _duration(seg)
-        cut = min(excess, max(0.0, dur - 7.0))
+        cut = min(excess, max(0.0, dur - minimum))
         if cut <= 0.2:
             continue
-        seg["end"] = round(_clean_end(seg, seg["end"] - cut), 2)
+        seg["end"] = round(
+            _clean_end(seg, seg["end"] - cut, min_keep=minimum),
+            2,
+        )
     return selected
 
 
@@ -92,12 +106,13 @@ def select_segments(
     # Shot detection often returns dozens of cuts in edited talking-head videos.
     # Keep semantic scene coverage, but cap representatives so short clips do
     # not automatically become dozens of chapters.
-    if len(scene_best) <= 10:
-        max_scenes = len(scene_best)
-    else:
-        # Roughly one semantically distinct section per 12 seconds of summary,
-        # capped to avoid shot cuts exploding into dozens of tiny summaries.
-        max_scenes = min(18, max(8, int((target_seconds + 11.999) // 12)))
+    # Roughly one semantically distinct section per 12 seconds of summary,
+    # capped to avoid shot cuts exploding into dozens of tiny summaries.
+    max_scenes = min(
+        len(scene_best),
+        18,
+        max(1, int((target_seconds + 11.999) // 12)),
+    )
     if len(scene_best) <= max_scenes:
         chosen_scenes = scene_best
     else:
@@ -131,9 +146,14 @@ def select_segments(
         selected.append(seg)
         total += _duration(seg)
 
+    effective_min_segments = min(
+        min_segments,
+        max(1, int(target_seconds // 15)),
+    )
+
     # Pass 2: fill remaining time with the next best non-overlapping segments.
     for seg in ranked:
-        if total >= target_seconds and len(selected) >= min_segments:
+        if total >= target_seconds and len(selected) >= effective_min_segments:
             break
         if any(seg is s for s in selected):
             continue
@@ -184,9 +204,9 @@ def select_segments(
             selected.append(seg)
             total += _duration(seg)
 
-    if len(selected) < min_segments:
+    if len(selected) < effective_min_segments:
         for seg in ranked:
-            if len(selected) >= min_segments:
+            if len(selected) >= effective_min_segments:
                 break
             if any(seg is s for s in selected):
                 continue
@@ -194,7 +214,7 @@ def select_segments(
                 continue
             selected.append(seg)
 
-    selected = _fit_target(selected, target_seconds)
+    selected = _fit_target(selected, target_seconds, min_clip=min_clip)
     total = sum(_duration(s) for s in selected)
     if total < target_seconds * 0.95:
         for seg in ranked:
@@ -206,7 +226,7 @@ def select_segments(
                 continue
             selected.append(seg)
             total += _duration(seg)
-    selected = _fit_target(selected, target_seconds)
+    selected = _fit_target(selected, target_seconds, min_clip=min_clip)
     _extend_to_target(selected, target_seconds)
     selected.sort(key=lambda s: s["start"])
     return selected

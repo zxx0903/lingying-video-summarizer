@@ -292,7 +292,7 @@ def _openai_describe(image_path: Path, config: PipelineConfig) -> dict:
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     response = requests.post(
-        config.vlm_api_base_url.rstrip("/") + "/chat/completions",
+        config.vlm_base_url.rstrip("/") + "/chat/completions",
         headers=headers,
         json={
             "model": config.vlm_model,

@@ -59,6 +59,54 @@ class QualityRegressionTest(unittest.TestCase):
         self.assertGreaterEqual(total, 95.0)
         self.assertLessEqual(total, 105.0)
 
+    def test_target_ratio_is_honored_on_short_video(self):
+        target = PipelineConfig(target_ratio=0.25).resolve_target(36.85)
+        self.assertAlmostEqual(target, 9.2125)
+        segments = _segments()
+        for seg in segments:
+            seg["cues"] = [{"start": seg["start"], "end": seg["end"]}]
+        selected = select_segments(segments, target_seconds=target)
+        total = sum(seg["end"] - seg["start"] for seg in selected)
+        self.assertGreaterEqual(total, target * 0.95)
+        self.assertLessEqual(total, target * 1.05)
+
+    def test_summary_is_bounded_and_has_specific_title(self):
+        text = (
+            "Volumetric techniques. Measuring, essentially. "
+            "Have you ever added too much pepper to a recipe? "
+            "I know, it is not so great afterwards, but it is an innocent mistake. "
+            "But in the lab, you have to be sure to have precise measurements. "
+            "So we are going to learn how to use a pipette and a burette. "
+            "Pipettes measure small quantities of volume, usually up to 10 ml. "
+            "They work on the principle of creating a vacuum. "
+            "The bulb is the wide part of a volumetric pipette."
+        )
+        selected = [
+            {
+                "id": "s001",
+                "index": 1,
+                "start": 0.0,
+                "end": 30.0,
+                "score": 0.8,
+                "scene_id": 0,
+                "cues": [],
+                "tokens": ["volume", "pipette", "technique"],
+                "keywords": ["volume", "pipette", "technique"],
+                "text": text,
+            }
+        ]
+        summary = build_summary(
+            30.0,
+            selected,
+            [text],
+            PipelineConfig(max_chapters=1),
+        )
+        chapter = summary["chapters"][0]
+        self.assertIn("Volumetric", chapter["title"])
+        self.assertLessEqual(len(chapter["summary"]), 320)
+        self.assertLess(len(chapter["summary"]), len(text))
+        self.assertNotEqual(chapter["title"].lower(), "sure")
+
     def test_chapter_count_is_bounded(self):
         selected = _segments(14)
         summary = build_summary(

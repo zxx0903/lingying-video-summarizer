@@ -11,14 +11,15 @@ import numpy as np
 
 from .asr import (
     Cue,
-    find_sidecar_srt,
-    parse_srt,
+    find_sidecar_subtitle,
+    parse_subtitle,
     transcribe_with_whisper,
 )
 from .audio_features import read_wav, segment_audio_stats
 from .config import PipelineConfig, ensure_dir
 from .ffmpeg_utils import (
     concat_clips,
+    extract_embedded_subtitle,
     extract_audio,
     extract_frames,
     probe,
@@ -276,11 +277,30 @@ def run_pipeline(
     progress("识别字幕/语音", 0.28)
     cues: list[Cue] = []
     asr_mode = "none"
-    chosen_srt = Path(srt_path) if srt_path else find_sidecar_srt(input_path)
-    if chosen_srt and chosen_srt.exists():
-        cues = parse_srt(chosen_srt)
-        asr_mode = "srt"
-    elif config.asr_enabled and info.has_audio:
+    subtitle_source = ""
+    chosen_subtitle = Path(srt_path) if srt_path else find_sidecar_subtitle(input_path)
+    if chosen_subtitle and chosen_subtitle.exists():
+        cues = parse_subtitle(chosen_subtitle)
+        if cues:
+            asr_mode = "srt"
+            subtitle_source = "explicit" if srt_path else "sidecar"
+        else:
+            warnings.append(f"字幕文件没有可解析内容: {chosen_subtitle}")
+    if not cues and info.has_subtitles:
+        embedded_subtitle = out_dir / "subtitles" / "embedded.srt"
+        try:
+            embedded_subtitle.parent.mkdir(parents=True, exist_ok=True)
+            extract_embedded_subtitle(input_path, embedded_subtitle)
+            cues = parse_subtitle(embedded_subtitle)
+            if cues:
+                asr_mode = "srt"
+                subtitle_source = "embedded"
+        except Exception as exc:
+            warnings.append(
+                "内嵌字幕提取失败，将尝试语音识别: "
+                + str(exc).splitlines()[0][:160]
+            )
+    if not cues and config.asr_enabled and info.has_audio:
         try:
             cues = transcribe_with_whisper(
                 audio_dir / "audio.wav", model_size=config.asr_model
@@ -321,11 +341,7 @@ def run_pipeline(
     )
     for index, seg in enumerate(segments):
         midpoint = (seg["start"] + seg["end"]) / 2.0
-        seg["scene_id"] = (
-            index
-            if asr_mode == "ocr" and not outline
-            else scene_id_for(midpoint, outline, scene_times)
-        )
+        seg["scene_id"] = scene_id_for(midpoint, outline, scene_times)
         sid = int(seg["scene_id"])
         if outline and 0 <= sid < len(outline):
             seg["scene_start"] = outline[sid]["start"]
@@ -397,7 +413,7 @@ def run_pipeline(
     )
     apply_template_prior(segments, template_keywords)
     target = config.resolve_target(info.duration)
-    selected = select_segments(segments, target)
+    selected = select_segments(segments, target, min_clip=config.min_clip)
     for seg in segments:
         seg.pop("_original_start", None)
         seg.pop("_original_end", None)
@@ -491,6 +507,7 @@ def run_pipeline(
         },
         "config": config.to_dict(),
         "asr_mode": asr_mode,
+        "subtitle_source": subtitle_source or None,
         "vlm_mode": vlm_mode,
         "content_mode": content_mode,
         "outline": outline,

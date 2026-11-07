@@ -25,6 +25,10 @@ STOPWORDS = set(
 the a an and or but to of in on for with from by is are was were be been being this that
 these those it its they them we you he she i as at into about over under can could would
 should may might will just also more most much many some any not no if then than so because
+sure really okay right now well thing things get got want need make made go going know see seen
+take used using let lets like said says read your our their my me us him her who what when where
+why how all each both few other another up down
+have has had do does did being
 """.split()
 )
 
@@ -94,14 +98,14 @@ def tokenize(text: str) -> list[str]:
         tok = tok.strip()
         if len(tok) < 2 or tok.isdigit():
             continue
-        if tok in STOPWORDS:
+        if tok.lower() in STOPWORDS:
             continue
         tokens.append(tok)
     return tokens
 
 
 def split_sentences(text: str) -> list[str]:
-    parts = re.split(r"(?<=[。！？!?；;])\s*", text or "")
+    parts = re.split(r"(?<=[。！？!?；;])\s*|(?<=\.)\s+", text or "")
     return [p.strip() for p in parts if p.strip()]
 
 
@@ -155,24 +159,85 @@ def jaccard(a: set[str], b: set[str]) -> float:
     return len(a & b) / len(a | b)
 
 
-FILLERS = ["同学们好，", "大家好，", "这节课我们", "这节课", "接下来", "最后", "首先", "那么", "好，"]
+FILLERS = [
+    "同学们好，",
+    "大家好，",
+    "这节课我们",
+    "这节课",
+    "接下来",
+    "最后",
+    "首先",
+    "那么",
+    "好，",
+    "now",
+    "so",
+    "well",
+    "okay",
+]
 
 
 def best_title(text: str, keywords: list[str], limit: int = 24) -> str:
-    sentences = split_sentences(text)
-    base = sentences[0] if sentences else (text or "").strip()
-    for filler in FILLERS:
-        if base.startswith(filler):
-            base = base[len(filler) :]
-            break
-    clauses = [c.strip("，。；：,.;: ") for c in re.split(r"[，。；;]", base) if c.strip()]
-    if not clauses:
-        base = clean_text(text)[:limit]
-    else:
-        base = clauses[0]
-        if base.startswith(("按照", "如果", "当", "对于", "在")) and len(clauses) > 1:
-            base = clauses[1]
-    base = base.strip("，。；：,.;: ")
-    if len(base) < 5 and keywords:
-        base = f"{keywords[0]}：{base}"
-    return base[:limit] + ("…" if len(base) > limit else "")
+    raw_units = [
+        unit
+        for sentence in split_sentences(text)
+        for unit in re.split(r"(?<=[，,])\s*", sentence)
+    ]
+    candidates: list[tuple[float, int, str]] = []
+    keyword_set = {
+        keyword.lower()
+        for keyword in keywords
+        if keyword and keyword.lower() not in STOPWORDS
+    }
+    for index, raw in enumerate(raw_units):
+        base = raw.strip("，。；：,.;:!?！？ ")
+        lower = base.lower()
+        for filler in FILLERS:
+            if lower.startswith(filler):
+                base = base[len(filler) :].lstrip(" ，,：:")
+                break
+        base = re.sub(r"^(?:and|but|so|then)\s+", "", base, flags=re.IGNORECASE)
+        base = base.strip("，。；：,.;:!?！？ ")
+        meaningful = tokenize(base)
+        if not meaningful:
+            continue
+        compact = "".join(base.split())
+        if len(compact) < 4:
+            continue
+        words = re.findall(r"[A-Za-z]+", base.lower())
+        if words and words[-1] in STOPWORDS:
+            continue
+        lower_base = base.lower()
+        keyword_hits = sum(
+            1 for keyword in keyword_set if keyword and keyword in lower_base
+        )
+        length_score = 1.0 - min(1.0, abs(len(base) - 20) / 40)
+        position_score = max(0.0, 2.0 - index * 0.18)
+        question_penalty = 1.5 if base.rstrip().endswith(("?", "？")) else 0.0
+        opening_penalty = (
+            1.2
+            if re.match(
+                r"^(?:i|you|we|they|he|she|it|that|this|there|here|have|has|do|does)\b",
+                lower_base,
+            )
+            else 0.0
+        )
+        score = (
+            keyword_hits * 1.2
+            + cue_word_score(base)
+            + length_score
+            + position_score
+            - question_penalty
+            - opening_penalty
+        )
+        candidates.append((score, index, base))
+    if not candidates:
+        fallback = "、".join(keywords[:3]) or clean_text(text)[:limit]
+        return fallback[:limit] + ("…" if len(fallback) > limit else "")
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    base = candidates[0][2]
+    if len(base) > limit:
+        clipped = base[:limit]
+        if " " in clipped:
+            clipped = clipped.rsplit(" ", 1)[0]
+        base = clipped.rstrip("，。；：,.;:!?！？ ") + "…"
+    return base

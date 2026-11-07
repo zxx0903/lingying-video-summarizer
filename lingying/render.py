@@ -233,10 +233,33 @@ def render_keyframes(
                 for j in range(per_clip)
             ]
 
-        for j, t in enumerate(selected_times[:per_clip], 1):
-            t = max(t, float(seg.get("scene_start", seg["start"])) + 0.3)
-            t = min(t, float(seg.get("scene_end", seg["end"])) - 0.1)
-            t = min(t, seg["end"] - 0.1)
+        raw_scene_start = seg.get("scene_start")
+        raw_scene_end = seg.get("scene_end")
+        scene_start = (
+            float(raw_scene_start) if raw_scene_start is not None else seg["start"]
+        )
+        scene_end = (
+            float(raw_scene_end) if raw_scene_end is not None else seg["end"]
+        )
+        window_start = max(seg["start"] + 0.1, scene_start + 0.3)
+        window_end = min(seg["end"] - 0.1, scene_end - 0.1)
+        if window_start > window_end:
+            window_start = seg["start"] + 0.1
+            window_end = seg["end"] - 0.1
+
+        keyframe_times = [
+            min(max(t, window_start), window_end)
+            for t in selected_times[:per_clip]
+        ]
+        if len({round(t, 2) for t in keyframe_times}) < len(keyframe_times):
+            # Short detected scenes can collapse multiple buckets onto the same
+            # timestamp. Spread them across the selected clip in that case.
+            keyframe_times = [
+                seg["start"] + dur * ((j + 0.5) / per_clip)
+                for j in range(per_clip)
+            ]
+
+        for j, t in enumerate(keyframe_times, 1):
             path = frames_dir / f"kf_{i:02d}_{j}.jpg"
             extract_frame_at(video, t, path)
             out.append(

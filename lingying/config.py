@@ -60,10 +60,9 @@ class PipelineConfig:
 
     def resolve_target(self, duration: float) -> float:
         if self.target_seconds and self.target_seconds > 0:
-            return min(float(self.target_seconds), max(10.0, duration * 0.9))
-        ratio_target = duration * float(self.target_ratio)
-        # Short lectures should still get a usable summary instead of a 30 s teaser.
-        return max(15.0, min(duration * 0.45, max(ratio_target, 60.0)))
+            return max(3.0, min(float(self.target_seconds), duration * 0.9))
+        ratio_target = max(0.0, duration * float(self.target_ratio))
+        return max(3.0, min(duration * 0.9, ratio_target))
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
